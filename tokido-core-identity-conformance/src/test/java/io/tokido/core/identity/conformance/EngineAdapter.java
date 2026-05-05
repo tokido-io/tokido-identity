@@ -655,7 +655,13 @@ final class EngineAdapter {
                 allowedScopes,
                 allowedGrantTypes,
                 authMethods,
-                /* requirePkce */ true,
+                // OIDF's basic-cert plan does not send PKCE by default
+                // (PKCE is exercised by the separate oidcc-pkce plan).
+                // Setting requirePkce=true rejects every basic-cert auth
+                // request as invalid_request "code_challenge required",
+                // so the seed leaves PKCE optional. The engine still
+                // verifies PKCE when the client *does* send it.
+                /* requirePkce */ false,
                 /* allowOfflineAccess */ true,
                 ACCESS_TOKEN_LIFETIME,
                 REFRESH_TOKEN_LIFETIME,
@@ -670,7 +676,7 @@ final class EngineAdapter {
                 allowedScopes,
                 allowedGrantTypes,
                 authMethods,
-                true,
+                /* requirePkce */ false,
                 true,
                 ACCESS_TOKEN_LIFETIME,
                 REFRESH_TOKEN_LIFETIME,
