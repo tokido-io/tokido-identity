@@ -73,10 +73,11 @@ class OidcConformanceIT {
     // VMs and CI machines may be slower still. 15 min is comfortable
     // headroom; the readiness probe returns immediately once the API is up.
     private static final Duration BOOT_TIMEOUT = Duration.ofMinutes(15);
-    // M2.RC2: per-module timeout. Playwright drives the redirect chain so
-    // most tests finish in 1-3s; 90s gives generous margin for slow engine
-    // flows (multi-RTT auth + token + userinfo + retries).
-    private static final Duration MODULE_TIMEOUT = Duration.ofSeconds(90);
+    // M2.RC2: per-module timeout. Playwright drives the redirect chain;
+    // some modules issue extra requests (refresh, userinfo, multiple
+    // redirects) and the suite's own per-test budget is 5 min. Match it
+    // so we don't bail before a slow-but-still-running test completes.
+    private static final Duration MODULE_TIMEOUT = Duration.ofMinutes(3);
     private static final Path COMPOSE_FILE =
             Path.of("src/test/resources/docker-compose.yml");
     private static final Path RESULTS_FILE = Path.of("target/conformance-results.json");
@@ -223,7 +224,7 @@ class OidcConformanceIT {
             // result values: PASSED, FAILED, WARNING, REVIEW, SKIPPED, UNKNOWN
             List<String> moduleNames = fetchPlanModules(planId);
             total = moduleNames.size();
-            boolean firstNonPassLogged = false;
+            int nonPassDumped = 0;
             for (String moduleName : moduleNames) {
                 String testId = createTestInstance(planId, moduleName);
                 String result;
@@ -233,15 +234,16 @@ class OidcConformanceIT {
                     result = "TIMEOUT";
                     System.err.println("[oidf] " + testId + " " + timeout.getMessage());
                 }
+                System.err.println("[oidf-result] " + moduleName + " => " + result);
                 if ("PASSED".equals(result)) {
                     passed++;
-                } else if (!firstNonPassLogged) {
-                    // Dump the suite's structured log for the first non-pass
-                    // so we have ground-truth on why the SUT is failing OIDF
-                    // validation. Subsequent non-passes usually share the
-                    // same root cause.
+                } else if (nonPassDumped < 3) {
+                    // Dump the suite's structured log for the first few
+                    // non-passes so RC2 debugging has multiple data points
+                    // to compare. Capping at 3 keeps the test output
+                    // tractable.
                     dumpTestLog(testId);
-                    firstNonPassLogged = true;
+                    nonPassDumped++;
                 }
             }
         } finally {

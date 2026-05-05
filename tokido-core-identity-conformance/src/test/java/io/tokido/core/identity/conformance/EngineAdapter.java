@@ -623,10 +623,15 @@ final class EngineAdapter {
                 // OIDF certification suite (production callbacks)
                 "https://www.certification.openid.net/test/a/tokido/callback",
                 "https://www.certification.openid.net/test/a/tokido/callback/implicit",
-                // OIDF suite running locally (docker-compose). The suite
-                // advertises HTTPS:8443 callbacks even when its actual server
-                // is plain HTTP/8080 — the URL is a label captured from a
-                // 302 Location header, not an HTTP target the SUT fetches.
+                // OIDF suite running locally (docker-compose). The suite is
+                // configured with fintechlabs.base_url=http://localhost:8080
+                // so its callback URLs use HTTP/8080 — the same port the
+                // suite container actually exposes (no TLS proxy bundled
+                // with the prebuilt image).
+                "http://localhost:8080/test/a/tokido/callback",
+                "http://localhost:8080/test/a/tokido/callback/implicit",
+                // HTTPS:8443/8444 retained for symmetry with the OIDF
+                // image's default URL pattern in case base_url is reverted.
                 "https://localhost:8443/test/a/tokido/callback",
                 "https://localhost:8443/test/a/tokido/callback/implicit",
                 "https://localhost:8444/test-mtls/a/tokido/callback",
