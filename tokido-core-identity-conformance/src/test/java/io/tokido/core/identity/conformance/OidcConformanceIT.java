@@ -161,6 +161,10 @@ class OidcConformanceIT {
         } catch (Exception e) {
             System.err.println("Failed to stop SUT: " + e.getMessage());
         }
+        if (Boolean.getBoolean("tokido.conformance.keepSuite")) {
+            System.err.println("[oidf] tokido.conformance.keepSuite=true — leaving suite running");
+            return;
+        }
         try {
             runOrFail("docker", "compose", "-f", COMPOSE_FILE.toString(), "down", "-v");
         } catch (Exception e) {
@@ -223,6 +227,17 @@ class OidcConformanceIT {
             // Terminal status values: FINISHED, INTERRUPTED
             // result values: PASSED, FAILED, WARNING, REVIEW, SKIPPED, UNKNOWN
             List<String> moduleNames = fetchPlanModules(planId);
+            // Optional debug filter: when -Dtokido.conformance.modules=
+            // <comma-separated> is set, run only the named modules. Useful
+            // for fast-iteration debugging on a single test plan module
+            // without spending 100+ minutes per run.
+            String filter = System.getProperty("tokido.conformance.modules", "");
+            if (!filter.isBlank()) {
+                java.util.Set<String> wanted = new java.util.HashSet<>(
+                        java.util.Arrays.asList(filter.split(",")));
+                moduleNames = moduleNames.stream()
+                        .filter(wanted::contains).toList();
+            }
             total = moduleNames.size();
             int nonPassDumped = 0;
             for (String moduleName : moduleNames) {
@@ -419,22 +434,53 @@ class OidcConformanceIT {
         }
         try (BrowserContext ctx = browser.newContext()) {
             Page page = ctx.newPage();
-            page.navigate(authUrl, new Page.NavigateOptions().setTimeout(15000));
-            try {
-                page.waitForURL(
-                        java.util.regex.Pattern.compile(".*/test/a/[^/]+/callback.*"),
-                        new Page.WaitForURLOptions().setTimeout(20000));
-            } catch (Exception e) {
-                // The flow may have errored on the SUT side (the test
-                // legitimately fails) — fall through to pollUntilFinished
-                // which captures the suite-side outcome.
-                System.err.println("waitForURL(callback) timed out for "
-                        + moduleName + ": current url=" + page.url());
+            // navigate() returns once the SUT's 302 chain settles on the
+            // suite's /callback page. That page is HTML+JS ("Processing
+            // Implicit Callback") that POSTs the auth-response params back
+            // to the suite via fetch() once the DOM loads. Closing the
+            // BrowserContext too early kills that script before it runs;
+            // the test then stays in WAITING because the suite never
+            // processed the callback.
+            //
+            // We can't waitForURL/LoadState here because the JS doesn't
+            // navigate to a new URL — it just makes a same-origin POST and
+            // the page stays put. Instead, poll the test status and wait
+            // for it to leave WAITING (which only happens once the suite
+            // has processed the JS-posted callback).
+            page.navigate(authUrl, new Page.NavigateOptions().setTimeout(60000));
+            String afterNav = page.url();
+            String terminalStatus = waitForStatusChange(testId, "WAITING",
+                    Duration.ofSeconds(60));
+            if (DEBUG_BROWSER) {
+                System.err.println("[browser] " + moduleName
+                        + " after-nav=" + afterNav
+                        + " status-after=" + terminalStatus);
             }
         } catch (Exception e) {
             System.err.println("browser drive failed for " + moduleName + ": " + e.getMessage());
         }
     }
+
+    /**
+     * Poll {@code /api/info/{testId}} until the status leaves {@code from}
+     * (or the deadline elapses). Returns the final status seen, which may
+     * still be {@code from} if the timeout fired.
+     */
+    private static String waitForStatusChange(String testId, String from, Duration timeout) {
+        Instant deadline = Instant.now().plus(timeout);
+        while (Instant.now().isBefore(deadline)) {
+            String status = pollStatus(testId);
+            if (!status.isEmpty() && !status.equals(from)) return status;
+            try { Thread.sleep(500); } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return from;
+            }
+        }
+        return from;
+    }
+
+    private static final boolean DEBUG_BROWSER =
+            Boolean.getBoolean("tokido.conformance.debug");
 
     /**
      * Poll {@code /api/log/{testId}} until an entry surfaces the

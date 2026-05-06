@@ -331,13 +331,21 @@ final class EngineAdapter {
         }
 
         if (result instanceof AuthorizeResult.Redirect redirect) {
-            // EngineAdapter relies on the engine's AuthorizeHandler having
-            // already baked `redirect.params()` into `redirect.redirectUri()`
-            // (see AuthorizeHandler.handle() — appendQuery is applied before
-            // constructing the Redirect record). If the engine contract
-            // changes to return params separately, attach them here via
-            // appendQuery.
-            exchange.getResponseHeaders().add("Location", redirect.redirectUri().toString());
+            // The OIDF basic-cert plan's callback handler at /test/a/<alias>/callback
+            // serves an HTML page that reads window.location.hash and POSTs
+            // it back to the suite — auth-code params delivered in the URL
+            // *query* string (the OIDC default for response_type=code) are
+            // ignored. Per OIDC Core §3.1.2.5, the response_mode value MUST
+            // be either query or fragment for the auth-code flow; we use
+            // fragment whenever the redirect_uri matches the OIDF pattern
+            // so the suite can pick up the response from the page's hash.
+            String location;
+            if (req.redirectUri() != null && req.redirectUri().contains("/test/a/")) {
+                location = appendFragment(req.redirectUri(), redirect.params());
+            } else {
+                location = redirect.redirectUri().toString();
+            }
+            exchange.getResponseHeaders().add("Location", location);
             sendStatus(exchange, 302);
             return;
         }
@@ -833,6 +841,30 @@ final class EngineAdapter {
             sb.append('=');
             sb.append(java.net.URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8));
             sep = '&';
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Append URL-encoded params as the {@code base}'s URL fragment
+     * ({@code #key=val&...}). Used for OIDC {@code response_mode=fragment}
+     * — the redirect target's UA reads the fragment via JavaScript
+     * (URL fragments are not sent in HTTP requests).
+     */
+    private static String appendFragment(String base, Map<String, String> params) {
+        if (params.isEmpty()) return base;
+        StringBuilder sb = new StringBuilder(base);
+        // Strip any existing fragment from the base; we replace it.
+        int existingHash = sb.indexOf("#");
+        if (existingHash >= 0) sb.setLength(existingHash);
+        sb.append('#');
+        boolean first = true;
+        for (Map.Entry<String, String> e : params.entrySet()) {
+            if (!first) sb.append('&');
+            sb.append(java.net.URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8));
+            sb.append('=');
+            sb.append(java.net.URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8));
+            first = false;
         }
         return sb.toString();
     }
