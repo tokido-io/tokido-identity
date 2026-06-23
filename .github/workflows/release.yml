@@ -30,21 +30,17 @@ jobs:
       - name: Verify pom versions are release (not SNAPSHOT)
         run: |
           set -euo pipefail
-          # The maintainer bumps -SNAPSHOT to release locally before tagging
-          # (per Task 10 of the M0 plan and ADR-0010). This step guards against
-          # accidentally tagging a SNAPSHOT.
+          # The maintainer bumps -SNAPSHOT to release locally before tagging.
+          # This step guards against accidentally tagging a SNAPSHOT.
+          # See docs/ROADMAP.md for the release runbook.
           if grep -q 'SNAPSHOT' pom.xml \
-                tokido-core-identity-api/pom.xml \
-                tokido-core-identity-engine/pom.xml \
-                tokido-core-identity-jwt/pom.xml \
-                tokido-core-identity-broker/pom.xml \
-                tokido-core-identity-mfa/pom.xml \
-                tokido-core-identity-conformance/pom.xml \
-                tokido-core-api/pom.xml \
-                tokido-core-test/pom.xml \
-                tokido-core-engine/pom.xml \
-                tokido-core-totp/pom.xml \
-                tokido-core-recovery/pom.xml; then
+                tokido-identity-bom/pom.xml \
+                tokido-identity-api/pom.xml \
+                tokido-identity-engine/pom.xml \
+                tokido-identity-http/pom.xml \
+                tokido-identity-dev/pom.xml \
+                tokido-identity-test/pom.xml \
+                tokido-identity-conformance/pom.xml; then
             echo "::error::Found SNAPSHOT version in a pom. Maintainer must bump to release before tagging."
             grep -H 'SNAPSHOT' pom.xml */pom.xml || true
             exit 1
@@ -62,13 +58,12 @@ jobs:
       - name: Verify source and Javadoc artifacts
         run: |
           set -euo pipefail
-          # Existing modules ride at parent (2.0.0-MX) version.
-          # Resolve the version each module shipped at, and check that source/javadoc
-          # jars exist for everything that's published to Central.
-          # The conformance module is intentionally NOT published (maven.deploy.skip=true).
-          for m in tokido-core-api tokido-core-test tokido-core-engine tokido-core-totp tokido-core-recovery \
-                   tokido-core-identity-api tokido-core-identity-engine tokido-core-identity-jwt \
-                   tokido-core-identity-broker tokido-core-identity-mfa; do
+          # Verify source/javadoc jars exist for all published modules.
+          # tokido-identity-conformance is NOT published (maven.deploy.skip=true).
+          # tokido-identity-bom is pom-only (no jar expected).
+          # See docs/ROADMAP.md for the release runbook.
+          for m in tokido-identity-api tokido-identity-engine tokido-identity-http \
+                   tokido-identity-dev tokido-identity-test; do
             v=$(mvn -pl "$m" -q help:evaluate -Dexpression=project.version -DforceStdout)
             test -f "$m/target/${m}-${v}.jar"             || { echo "::error::missing jar for $m@$v"; exit 1; }
             test -f "$m/target/${m}-${v}-sources.jar"     || { echo "::error::missing sources jar for $m@$v"; exit 1; }
