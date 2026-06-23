@@ -10,3 +10,7 @@ target/
 .classpath
 .project
 .factorypath
+
+# AI scratch planning docs — only docs/ROADMAP.md is committed
+docs/superpowers/
+.superpowers/

@@ -1,0 +1,17 @@
+name: native-smoke
+on:
+  pull_request: { branches: [main] }
+  push: { branches: [main] }
+jobs:
+  native-smoke:
+    runs-on: ubuntu-latest
+    continue-on-error: true   # informational during 0.x (spec §8)
+    steps:
+      - uses: actions/checkout@v5
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+      - name: Compile core (native readiness placeholder)
+        run: mvn -B -q -pl tokido-identity-engine,tokido-identity-http -am verify
+      # A real `native-image` build target is added when the standalone runtime lands (post-v1).

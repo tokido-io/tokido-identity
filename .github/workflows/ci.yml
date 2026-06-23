@@ -25,7 +25,8 @@ jobs:
           cache: 'maven'
 
       - name: Build and test with coverage
-        run: mvn verify
+        # Builds tokido-identity-* reactor. See docs/ROADMAP.md for module details.
+        run: mvn -B -U clean verify
 
       - name: Verify CODECOV_TOKEN is available
         if: success()

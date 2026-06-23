@@ -1,112 +1,92 @@
-# tokido-core
+# Tokido Identity
 
-Production-grade MFA toolkit for Java. TOTP, recovery codes, extensible factors. GraalVM native-image ready.
+A framework/SDK for building your own OIDC/OAuth 2.x identity provider in Java — pluggable, conformant, native-ready.
+
+**Status: 0.x, pre-release.** See [docs/ROADMAP.md](docs/ROADMAP.md) for the full architecture, locked decisions, and increment-by-increment delivery plan.
 
 [![CI](https://github.com/tokido-io/tokido-core/actions/workflows/ci.yml/badge.svg)](https://github.com/tokido-io/tokido-core/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/tokido-io/tokido-core/graph/badge.svg)](https://codecov.io/gh/tokido-io/tokido-core)
 [![OIDC conformance](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/tokido-io/tokido-core/gh-pages/badges/conformance.json)](https://github.com/tokido-io/tokido-core/actions/workflows/oidc-conformance.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-## Why tokido-core?
+---
 
-- **Full enrollment lifecycle** — not just code verification, but enroll, confirm, verify, recover, and unenroll with audit events on every transition
-- **Pluggable secret storage** — you choose how secrets are stored and encrypted (KMS, Vault, local keystore). The library never makes that decision for you.
-- **GraalVM native-image ready** — no AWT, no runtime reflection. QR codes generated with pure `java.util.zip`.
-- **Zero framework dependencies** — works with Quarkus, Spring Boot, Micronaut, or plain Java
-- **Extensible factors** — TOTP and recovery codes ship in v1. Add WebAuthn, email OTP, or SMS by implementing `FactorProvider`.
+## What it is
 
-## OIDC extension status (in development — alpha)
+Tokido Identity lets you build your own OIDC/OAuth 2.x provider **in code** — the way Duende IdentityServer does for .NET, for the Java ecosystem. You supply storage and authentication; the framework owns the protocol.
 
-The OIDC extension is being built across six releases (M0 → M5). The current release is **`0.1.0-M1`** — the **public unblock event for downstream framework adapters** (`tokido-spring`, `tokido-quarkus`). All six core storage SPIs and the full protocol value-type surface are now `@API(STABLE)`.
-
-**OIDC basic conformance: 0/35** (M1 — engine façade still throws `UnsupportedOperationException`; conformance pass-rate climbs as engine handlers land at M2.)
-
-| Module | Introduced | API status | Coverage | Notes |
-|---|---|---|---|---|
-| `tokido-core-identity-api` | M0 | `@API(STABLE)` (M1+) | ≥ 90% | Six core SPIs (`ClientStore`, `ResourceStore`, `TokenStore`, `UserStore`, `ConsentStore`, `KeyStore`), protocol request/result value types, `AuthenticationState`, `DiscoveryDocument`, `JsonWebKey`/`JsonWebKeySet`. Surface frozen by `revapi-maven-plugin`; breaking changes require an ADR per ADR-0006. |
-| `tokido-core-identity-engine` | M0 | `@API(STABLE)` façade; impl at M2 | ≥ 90% | `IdentityEngine` Builder + method signatures committed; every method throws `UnsupportedOperationException` until M2. `TokenSigner` and `EventSink` SPIs locked. |
-| `tokido-core-identity-jwt` | M2 (placeholder pom in M0) | not yet introduced | n/a | Nimbus-backed JWT signing; lands at M2 |
-| `tokido-core-identity-broker` | M3 (placeholder pom in M0) | not yet introduced | n/a | OIDC RP federation; lands at M3 |
-| `tokido-core-identity-mfa` | M4 (placeholder pom in M0) | not yet introduced | n/a | Bridge to existing MFA modules; lands at M4 |
-
-> Coverage gates are active for `identity-api` and `identity-engine` from M1; the remaining identity modules' gates re-engage as their first main sources land in M2/M3/M4.
-
-The release cadence and milestone definitions are documented in [ADR-0004](docs/adr/0004-release-cadence.md). See `docs/adr/` for the full architectural decision record.
-
-## Quick start
-
-```xml
-<dependency>
-    <groupId>io.tokido</groupId>
-    <artifactId>tokido-core-engine</artifactId>
-    <version>1.0.0</version>
-</dependency>
-<dependency>
-    <groupId>io.tokido</groupId>
-    <artifactId>tokido-core-totp</artifactId>
-    <version>1.0.0</version>
-    <scope>runtime</scope>
-</dependency>
-<dependency>
-    <groupId>io.tokido</groupId>
-    <artifactId>tokido-core-recovery</artifactId>
-    <version>1.0.0</version>
-    <scope>runtime</scope>
-</dependency>
-```
-
-```java
-// 1. Plug in your secret store
-SecretStore store = new YourKmsSecretStore();
-
-// 2. Build the MFA manager
-MfaManager mfa = MfaManager.builder()
-    .secretStore(store)
-    .auditSink(event -> log.info("mfa: {}", event))
-    .factor(new TotpFactorProvider(TotpConfig.defaults().issuer("MyApp"), store))
-    .factor(new RecoveryCodeProvider(store))
-    .build();
-
-// 3. Enroll a user
-TotpEnrollmentResult totp = mfa.enroll(userId, "totp", EnrollmentContext.empty());
-// totp.secretUri()    → otpauth://totp/...
-// totp.qrCodeBase64() → PNG QR code
-
-// 4. Confirm enrollment (user proves they scanned the QR)
-mfa.confirmEnrollment(userId, "totp", codeFromAuthenticatorApp);
-
-// 5. Generate recovery codes
-RecoveryEnrollmentResult recovery = mfa.enroll(userId, "recovery", EnrollmentContext.empty());
-// recovery.codes() → ["04819237", "91847203", ...] — show once
-
-// 6. Verify
-VerificationResult result = mfa.verify(userId, "totp", codeFromUser);
-if (!result.valid()) {
-    // Try recovery code
-    result = mfa.verify(userId, "recovery", recoveryCodeFromUser);
-}
-```
+It is a **library/framework**, not a configure-and-run product like Keycloak. Its core value is an extensible pipeline: authentication, grant handling, claims, and events are plugin extension points on a framework-free, deterministic protocol engine.
 
 ## Modules
 
-| Module | Description | Dependencies |
-|--------|-------------|--------------|
-| `tokido-core-api` | SPIs and value types | none |
-| `tokido-core-engine` | `MfaManager` — enrollment lifecycle coordinator | `tokido-core-api` |
-| `tokido-core-totp` | TOTP factor with replay protection and QR generation | `tokido-core-api`, ZXing core |
-| `tokido-core-recovery` | Recovery codes with bcrypt hashing | `tokido-core-api`, jBCrypt |
-| `tokido-core-test` | `InMemorySecretStore` and `CollectingAuditSink` for testing | `tokido-core-api` |
+### Published (current reactor)
 
-## Security model
+| Artifact | Description |
+|---|---|
+| `tokido-identity-bom` | Bill of materials — import to align all artifact versions |
+| `tokido-identity-api` | Contracts: SPIs, protocol value types, plugin interfaces. Zero runtime deps. |
+| `tokido-identity-engine` | Framework-free, deterministic OIDC protocol engine + pipelines + default Nimbus signer |
+| `tokido-identity-http` | Transport-neutral HTTP protocol layer: HttpRequest → engine → HttpResponse |
+| `tokido-identity-dev` | In-memory store implementations. **DEV ONLY — not for production.** |
+| `tokido-identity-test` | Test fixtures for framework and plugin authors |
 
-tokido-core **never stores or encrypts secrets**. You must provide a `SecretStore` implementation that handles encryption and persistence. This is a deliberate design choice:
+`tokido-identity-conformance` is also in the reactor but is test-only and is never published.
 
-- The library can't accidentally leak plaintext secrets
-- You choose the encryption strategy (KMS envelope, Vault transit, local PKCS#12)
-- You choose the storage backend (database, S3, file system)
-- You own the key management lifecycle
+### Planned (roadmap)
 
-For testing, use `InMemorySecretStore` from `tokido-core-test`.
+| Artifact | Description |
+|---|---|
+| `tokido-identity-spring-boot-starter` | Spring Boot adapter: endpoints, DI discovery, sample login/consent UI |
+| `tokido-identity-jpa` | JPA persistence adapter for all storage SPIs |
+| `tokido-identity-plugin-federation` | Upstream OIDC federation plugin (AuthnStep, v0.9) |
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) for the full increment plan.
+
+## Quick start (BOM)
+
+```xml
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>io.tokido</groupId>
+            <artifactId>tokido-identity-bom</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+
+<dependencies>
+    <dependency>
+        <groupId>io.tokido</groupId>
+        <artifactId>tokido-identity-api</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>io.tokido</groupId>
+        <artifactId>tokido-identity-engine</artifactId>
+    </dependency>
+</dependencies>
+```
+
+- `groupId`: `io.tokido`
+- License: Apache 2.0
+- Java: 21+
+
+## Architecture
+
+Three layers; core is framework-free and deterministic (no HTTP/DI/framework imports — ArchUnit-enforced; no `ServiceLoader`/reflection):
+
+```
+adapters/  spring-boot-starter (endpoints + DI + sample UI), jpa (storage)
+   │
+tokido-identity-http   transport-neutral: HttpRequest → engine → HttpResponse
+   │
+tokido-identity-engine framework-free engine + pipelines (authn/grant/claims/events) + Nimbus signer
+   │  SPIs
+tokido-identity-api    Storage: ClientStore · UserStore · GrantStore · KeyStore · ConsentStore
+                       Plugin:  AuthnStep · GrantHandler · ClaimsEnricher · EventListener
+                       Signing: TokenSigner + protocol value types
+```
 
 ## Building
 
@@ -116,17 +96,15 @@ cd tokido-core
 mvn verify
 ```
 
-Requires Java 21+.
+Requires Java 21+ and Maven 3.9+.
 
-## Coverage
+## Parked modules
 
-Line coverage is measured with [JaCoCo](https://www.jacoco.org/jacoco/) during `mvn verify` (minimum **90%** per module bundle). HTML reports are written under each module, for example `tokido-core-engine/target/site/jacoco/index.html`.
+The original TOTP/recovery MFA library source is preserved under [`parked/`](parked/README.md) and will be reworked into `tokido-identity-plugin-mfa` post-v1. It is not part of the current build.
 
-CI publishes reports to [Codecov](https://codecov.io/gh/tokido-io/tokido-core) (interactive tree and history). The badge above tracks default-branch coverage; PRs get a diff once the repository is connected to Codecov.
+## Roadmap
 
-## Used in production by
-
-[Tokido](https://tokido.io) — MFA-as-a-Service platform
+See [docs/ROADMAP.md](docs/ROADMAP.md) — the canonical architecture, locked decisions, and per-increment delivery plan (v0.1 through v1.0).
 
 ## Contributing
 

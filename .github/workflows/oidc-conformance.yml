@@ -10,6 +10,7 @@ jobs:
   conformance:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    continue-on-error: true   # informational during 0.x (see docs/ROADMAP.md)
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
 
@@ -26,23 +27,22 @@ jobs:
       - name: Cache OIDF conformance suite image
         uses: ScribeMD/docker-cache@fb28c93772363301b8d0a6072ce850224b73f74e # 0.5.0
         with:
-          key: oidf-conformance-suite-${{ hashFiles('tokido-core-identity-conformance/src/test/resources/docker-compose.yml') }}
+          key: oidf-conformance-suite-${{ hashFiles('tokido-identity-conformance/src/test/resources/docker-compose.yml') }}
 
-      # NOTE (revisit at M2): this workflow does NOT upload JaCoCo data to
-      # Codecov. The conformance module's coverage gate is intentionally
-      # skipped at M0 (no main sources). When real engine code lands at M2
-      # and the IT exercises it, add a Codecov upload step mirroring ci.yml.
+      # NOTE: this workflow does NOT upload JaCoCo data to Codecov.
+      # Conformance is informational during 0.x (see docs/ROADMAP.md).
+      # When real engine code lands, add a Codecov upload step mirroring ci.yml.
       - name: Run OIDF conformance suite
         env:
           CONFORMANCE_FLOOR: ${{ vars.CONFORMANCE_FLOOR || '0' }}
-        run: mvn -pl tokido-core-identity-conformance -am verify -B
+        run: mvn -pl tokido-identity-conformance -am verify -Poidf-conformance -B
 
       - name: Upload OIDF results JSON
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: conformance-results
-          path: tokido-core-identity-conformance/target/conformance-results.json
+          path: tokido-identity-conformance/target/conformance-results.json
           retention-days: 90
 
       - name: Upload OIDF HTML report (if any)
@@ -50,6 +50,6 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: conformance-html
-          path: tokido-core-identity-conformance/target/oidf-html/
+          path: tokido-identity-conformance/target/oidf-html/
           retention-days: 30
           if-no-files-found: ignore

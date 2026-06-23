@@ -5,13 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.tokido</groupId>
-    <artifactId>tokido-core</artifactId>
-    <version>2.0.0-M2-SNAPSHOT</version>
+    <artifactId>tokido-identity-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>Tokido Core</name>
-    <description>Production-grade MFA toolkit for Java — TOTP, recovery codes, extensible factors. GraalVM native-image ready.</description>
-    <url>https://github.com/tokido-io/tokido-core</url>
+    <name>Tokido Identity Parent</name>
+    <description>Parent POM for the tokido-identity framework — an open-source SDK for building OIDC/OAuth 2.x providers in Java.</description>
+    <url>https://github.com/tokido-io/tokido-identity</url>
 
     <licenses>
         <license>
@@ -29,32 +29,30 @@
     </developers>
 
     <scm>
-        <url>https://github.com/tokido-io/tokido-core</url>
-        <connection>scm:git:git://github.com/tokido-io/tokido-core.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/tokido-io/tokido-core.git</developerConnection>
+        <url>https://github.com/tokido-io/tokido-identity</url>
+        <connection>scm:git:git://github.com/tokido-io/tokido-identity.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/tokido-io/tokido-identity.git</developerConnection>
     </scm>
 
     <modules>
-        <module>tokido-core-api</module>
-        <module>tokido-core-test</module>
-        <module>tokido-core-engine</module>
-        <module>tokido-core-totp</module>
-        <module>tokido-core-recovery</module>
-        <!-- New in 0.1 (alpha line) -->
-        <module>tokido-core-identity-api</module>
-        <module>tokido-core-identity-engine</module>
-        <module>tokido-core-identity-jwt</module>
-        <module>tokido-core-identity-broker</module>
-        <module>tokido-core-identity-mfa</module>
-        <module>tokido-core-identity-conformance</module> <!-- test-only, not published -->
+        <module>tokido-identity-bom</module>
+        <module>tokido-identity-api</module>
+        <module>tokido-identity-engine</module>
+        <module>tokido-identity-http</module>
+        <module>tokido-identity-dev</module>
+        <module>tokido-identity-test</module>
+        <module>tokido-identity-conformance</module> <!-- test-only, never published -->
     </modules>
 
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <tokido.core.version>2.0.0-M2-SNAPSHOT</tokido.core.version>
+        <tokido.version>0.1.0-SNAPSHOT</tokido.version>
+        <nimbus.version>10.0.1</nimbus.version>
         <junit.version>5.11.4</junit.version>
+        <assertj.version>3.27.3</assertj.version>
+        <archunit.version>1.3.0</archunit.version>
+        <apiguardian.version>1.1.2</apiguardian.version>
         <jacoco.version>0.8.14</jacoco.version>
         <surefire.version>3.5.4</surefire.version>
         <compiler-plugin.version>3.15.0</compiler-plugin.version>
@@ -62,71 +60,16 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>io.tokido</groupId>
-                <artifactId>tokido-core-api</artifactId>
-                <version>${tokido.core.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.tokido</groupId>
-                <artifactId>tokido-core-test</artifactId>
-                <version>${tokido.core.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.tokido</groupId>
-                <artifactId>tokido-core-engine</artifactId>
-                <version>${tokido.core.version}</version>
-            </dependency>
-            <!-- New: identity modules carry their own version line -->
-            <dependency>
-                <groupId>io.tokido</groupId>
-                <artifactId>tokido-core-identity-api</artifactId>
-                <version>0.1.0-M2-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>io.tokido</groupId>
-                <artifactId>tokido-core-identity-engine</artifactId>
-                <version>0.1.0-M2-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>io.tokido</groupId>
-                <artifactId>tokido-core-identity-jwt</artifactId>
-                <version>0.1.0-M2-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>io.tokido</groupId>
-                <artifactId>tokido-core-identity-broker</artifactId>
-                <version>0.1.0-M2-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>io.tokido</groupId>
-                <artifactId>tokido-core-identity-mfa</artifactId>
-                <version>0.1.0-M2-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apiguardian</groupId>
-                <artifactId>apiguardian-api</artifactId>
-                <version>1.1.2</version>
-            </dependency>
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter</artifactId>
-                <version>${junit.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.tngtech.archunit</groupId>
-                <artifactId>archunit-junit5</artifactId>
-                <version>1.3.0</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.assertj</groupId>
-                <artifactId>assertj-core</artifactId>
-                <version>3.26.3</version>
-                <scope>test</scope>
-            </dependency>
+            <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-api</artifactId><version>${tokido.version}</version></dependency>
+            <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-engine</artifactId><version>${tokido.version}</version></dependency>
+            <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-http</artifactId><version>${tokido.version}</version></dependency>
+            <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-dev</artifactId><version>${tokido.version}</version></dependency>
+            <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-test</artifactId><version>${tokido.version}</version><scope>test</scope></dependency>
+            <dependency><groupId>com.nimbusds</groupId><artifactId>nimbus-jose-jwt</artifactId><version>${nimbus.version}</version></dependency>
+            <dependency><groupId>org.apiguardian</groupId><artifactId>apiguardian-api</artifactId><version>${apiguardian.version}</version></dependency>
+            <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>${junit.version}</version><scope>test</scope></dependency>
+            <dependency><groupId>org.assertj</groupId><artifactId>assertj-core</artifactId><version>${assertj.version}</version><scope>test</scope></dependency>
+            <dependency><groupId>com.tngtech.archunit</groupId><artifactId>archunit-junit5</artifactId><version>${archunit.version}</version><scope>test</scope></dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -153,6 +96,7 @@
                     <groupId>org.revapi</groupId>
                     <artifactId>revapi-maven-plugin</artifactId>
                     <version>0.15.1</version>
+                    <!-- report-only during 0.x; see docs/ROADMAP.md -->
                     <dependencies>
                         <dependency>
                             <groupId>org.revapi</groupId>
@@ -229,17 +173,6 @@
                                 <id>attach-javadocs</id>
                                 <goals><goal>jar</goal></goals>
                                 <configuration>
-                                    <!--
-                                        Identity modules with @API(STABLE) types must ship complete
-                                        Javadoc. failOnWarnings=true + doclint=all,-missing catches
-                                        structural javadoc errors on locked types. failOnError=false
-                                        is retained because identity modules are empty placeholders at
-                                        Task 1 (javadoc hard-errors "No public or protected classes
-                                        found" which failOnError=false suppresses). The -missing
-                                        exemption is the fallback noted in the task spec; individual
-                                        identity module poms will override with doclint=all once
-                                        @API(STABLE) types land in Task 2+.
-                                    -->
                                     <failOnError>false</failOnError>
                                     <failOnWarnings>true</failOnWarnings>
                                     <doclint>all,-missing</doclint>
