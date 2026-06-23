@@ -6,15 +6,14 @@
 
     <parent>
         <groupId>io.tokido</groupId>
-        <artifactId>tokido-core</artifactId>
-        <version>2.0.0-M2-SNAPSHOT</version>
+        <artifactId>tokido-identity-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>tokido-core-identity-conformance</artifactId>
-    <version>0.1.0-M2-SNAPSHOT</version>
+    <artifactId>tokido-identity-conformance</artifactId>
 
-    <name>Tokido Core Identity Conformance</name>
-    <description>OIDF conformance harness for the tokido-core OIDC extension. Test-only — never published to Maven Central.</description>
+    <name>Tokido Identity Conformance</name>
+    <description>OIDF conformance harness for tokido-identity. Test-only — never published to Maven Central.</description>
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
@@ -28,19 +27,16 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>io.tokido</groupId>
-            <artifactId>tokido-core-identity-api</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.tokido</groupId>
-            <artifactId>tokido-core-identity-engine</artifactId>
-            <scope>test</scope>
-        </dependency>
+        <!-- Conformance harness uses only JDK + JUnit at this skeleton stage.
+             tokido-identity-engine is added here once engine APIs land (docs/ROADMAP.md). -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
