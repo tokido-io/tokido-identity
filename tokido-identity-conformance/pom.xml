@@ -13,7 +13,7 @@
     <artifactId>tokido-identity-conformance</artifactId>
 
     <name>Tokido Identity Conformance</name>
-    <description>OIDF conformance harness for tokido-identity. Test-only — never published to Maven Central.</description>
+    <description>OIDF conformance harness for tokido-identity. Test-only — never published to Maven Central. See docs/ROADMAP.md for conformance goals.</description>
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
@@ -24,6 +24,9 @@
         -->
         <skipPublishing>true</skipPublishing>
         <gpg.skip>true</gpg.skip>
+        <!-- IT tests require Docker (OIDF suite); skip by default in the standard reactor.
+             Run explicitly with: mvn -pl tokido-identity-conformance -Poidf-conformance verify -->
+        <skipITs>true</skipITs>
     </properties>
 
     <dependencies>
@@ -71,8 +74,21 @@
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>
+                    <!-- IT tests require Docker; activate with -Poidf-conformance (docs/ROADMAP.md) -->
+                    <skipITs>${skipITs}</skipITs>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Activate to run OIDF conformance suite IT tests (requires Docker):
+             mvn -pl tokido-identity-conformance -Poidf-conformance verify -->
+        <profile>
+            <id>oidf-conformance</id>
+            <properties>
+                <skipITs>false</skipITs>
+            </properties>
+        </profile>
+    </profiles>
 </project>
