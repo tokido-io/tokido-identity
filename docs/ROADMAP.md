@@ -2,6 +2,8 @@
 
 > A framework/SDK for building your own OIDC/OAuth 2.x identity provider in Java — pluggable, conformant, native-ready.
 
+> **Status (2026-06-25): Phase 0 complete.** Repo renamed to `tokido-identity`, single-version monorepo + BOM + core skeleton building green; old MFA/identity-scaffolding parked; SaaS decommissioned and `tokido.io` serving the framework homepage. **Next: v0.1 — Foundation + Discovery/JWKS + signing.**
+
 This is the canonical roadmap for the project. It captures the direction, the locked decisions, the architecture, and the increment-by-increment plan from the first foundation through v1.0. Each `0.x` is an independently valuable, fully-tested slice; we build them in order, no skipping.
 
 ---
