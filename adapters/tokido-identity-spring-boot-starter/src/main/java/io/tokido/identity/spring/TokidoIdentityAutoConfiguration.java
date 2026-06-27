@@ -5,8 +5,6 @@ import io.tokido.identity.dev.InMemoryKeyStore;
 import io.tokido.identity.engine.IdentityEngine;
 import io.tokido.identity.http.Router;
 import io.tokido.identity.key.KeyStore;
-import io.tokido.identity.signing.TokenSigner;
-import io.tokido.identity.engine.signing.NimbusTokenSigner;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -37,11 +35,7 @@ public class TokidoIdentityAutoConfiguration {
         return InMemoryKeyStore.ephemeral(clock);
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public TokenSigner tokidoTokenSigner() {
-        return new NimbusTokenSigner();
-    }
+    // NOTE: a TokenSigner bean is added here in v0.2 when IdentityEngine mints tokens.
 
     @Bean
     @ConditionalOnMissingBean
