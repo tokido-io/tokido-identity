@@ -43,6 +43,7 @@
         <module>tokido-identity-test</module>
         <module>tokido-identity-conformance</module> <!-- test-only, never published -->
         <module>adapters/tokido-identity-spring-boot-starter</module>
+        <module>examples/idp-spring</module>
     </modules>
 
     <properties>
