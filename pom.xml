@@ -49,6 +49,7 @@
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.outputTimestamp>2026-06-26T00:00:00Z</project.build.outputTimestamp>
         <tokido.version>0.1.0-SNAPSHOT</tokido.version>
         <nimbus.version>10.0.1</nimbus.version>
         <junit.version>5.11.4</junit.version>
@@ -212,11 +213,11 @@
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.6.0</version>
+                        <version>0.7.0</version>
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>central</publishingServerId>
-                            <autoPublish>true</autoPublish>
+                            <autoPublish>false</autoPublish>
                         </configuration>
                     </plugin>
                 </plugins>
