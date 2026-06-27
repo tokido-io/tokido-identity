@@ -27,15 +27,17 @@ public final class Router {
     }
 
     public HttpResponse route(HttpRequest req) {
-        String path = req.path();
-        if (DISCOVERY.equals(path)) {
-            return HttpResponse.json(HttpStatus.OK, engine.discoveryJson(), CACHE);
-        }
-        if (JWKS.equals(path)) {
-            return HttpResponse.json(HttpStatus.OK, engine.jwksJson(), CACHE);
-        }
-        if (NOT_YET_IMPLEMENTED.contains(path)) {
-            return HttpResponse.json(HttpStatus.NOT_IMPLEMENTED, NOT_IMPLEMENTED_BODY, "no-store");
+        if ("GET".equals(req.method())) {
+            String path = req.path();
+            if (DISCOVERY.equals(path)) {
+                return HttpResponse.json(HttpStatus.OK, engine.discoveryJson(), CACHE);
+            }
+            if (JWKS.equals(path)) {
+                return HttpResponse.json(HttpStatus.OK, engine.jwksJson(), CACHE);
+            }
+            if (NOT_YET_IMPLEMENTED.contains(path)) {
+                return HttpResponse.json(HttpStatus.NOT_IMPLEMENTED, NOT_IMPLEMENTED_BODY, "no-store");
+            }
         }
         return HttpResponse.json(HttpStatus.NOT_FOUND,
                 "{\"error\":\"not_found\"}", "no-store");
