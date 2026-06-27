@@ -1,4 +1,4 @@
-package io.tokido.core.identity.conformance;
+package io.tokido.identity.conformance;
 
 import com.sun.net.httpserver.HttpServer;
 

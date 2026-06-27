@@ -1,4 +1,4 @@
-package io.tokido.core.identity.conformance;
+package io.tokido.identity.conformance;
 
 import java.util.ArrayList;
 import java.util.List;

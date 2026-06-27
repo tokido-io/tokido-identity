@@ -1,4 +1,4 @@
-package io.tokido.core.identity.conformance;
+package io.tokido.identity.conformance;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
