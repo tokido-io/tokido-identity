@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DiscoveryDocumentTest {
 
@@ -67,5 +68,18 @@ class DiscoveryDocumentTest {
         assertThat(m).containsEntry("grant_types_supported", List.of("authorization_code"));
         assertThat(m).containsEntry("code_challenge_methods_supported", List.of("S256"));
         assertThat(m).containsEntry("token_endpoint_auth_methods_supported", List.of("client_secret_basic"));
+    }
+
+    @Test
+    void requires_list_fields_not_null() {
+        assertThatThrownBy(() -> new DiscoveryDocument(
+                URI.create("https://i"), URI.create("https://i/a"), URI.create("https://i/t"),
+                URI.create("https://i/u"), URI.create("https://i/j"),
+                null,  // responseTypesSupported
+                List.of("query"), List.of("public"), List.of("RS256"),
+                List.of("openid"), List.of("sub"),
+                List.of(), List.of(), List.of()))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("responseTypesSupported");
     }
 }

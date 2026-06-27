@@ -1,6 +1,8 @@
 package io.tokido.identity.protocol;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -27,10 +29,11 @@ class JsonWebKeyTest {
         assertThat(jwk.members()).containsEntry("kty", "RSA").containsEntry("kid", "kid-1");
     }
 
-    @Test
-    void rejects_private_params() {
+    @ParameterizedTest
+    @ValueSource(strings = {"d", "p", "q", "dp", "dq", "qi", "k"})
+    void rejects_private_params(String param) {
         Map<String, Object> m = publicRsa();
-        m.put("d", "PRIVATE");
+        m.put(param, "PRIVATE");
         assertThatThrownBy(() -> new JsonWebKey(m))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("private");
@@ -41,6 +44,10 @@ class JsonWebKeyTest {
         Map<String, Object> m = publicRsa();
         m.remove("kid");
         assertThatThrownBy(() -> new JsonWebKey(m)).isInstanceOf(IllegalArgumentException.class);
+
+        Map<String, Object> m2 = publicRsa();
+        m2.remove("kty");
+        assertThatThrownBy(() -> new JsonWebKey(m2)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

@@ -37,15 +37,15 @@ public record DiscoveryDocument(
         Objects.requireNonNull(tokenEndpoint, "tokenEndpoint");
         Objects.requireNonNull(userinfoEndpoint, "userinfoEndpoint");
         Objects.requireNonNull(jwksUri, "jwksUri");
-        responseTypesSupported = List.copyOf(responseTypesSupported);
-        responseModesSupported = List.copyOf(responseModesSupported);
-        subjectTypesSupported = List.copyOf(subjectTypesSupported);
-        idTokenSigningAlgValuesSupported = List.copyOf(idTokenSigningAlgValuesSupported);
-        scopesSupported = List.copyOf(scopesSupported);
-        claimsSupported = List.copyOf(claimsSupported);
-        grantTypesSupported = List.copyOf(grantTypesSupported);
-        codeChallengeMethodsSupported = List.copyOf(codeChallengeMethodsSupported);
-        tokenEndpointAuthMethodsSupported = List.copyOf(tokenEndpointAuthMethodsSupported);
+        responseTypesSupported = List.copyOf(Objects.requireNonNull(responseTypesSupported, "responseTypesSupported"));
+        responseModesSupported = List.copyOf(Objects.requireNonNull(responseModesSupported, "responseModesSupported"));
+        subjectTypesSupported = List.copyOf(Objects.requireNonNull(subjectTypesSupported, "subjectTypesSupported"));
+        idTokenSigningAlgValuesSupported = List.copyOf(Objects.requireNonNull(idTokenSigningAlgValuesSupported, "idTokenSigningAlgValuesSupported"));
+        scopesSupported = List.copyOf(Objects.requireNonNull(scopesSupported, "scopesSupported"));
+        claimsSupported = List.copyOf(Objects.requireNonNull(claimsSupported, "claimsSupported"));
+        grantTypesSupported = List.copyOf(Objects.requireNonNull(grantTypesSupported, "grantTypesSupported"));
+        codeChallengeMethodsSupported = List.copyOf(Objects.requireNonNull(codeChallengeMethodsSupported, "codeChallengeMethodsSupported"));
+        tokenEndpointAuthMethodsSupported = List.copyOf(Objects.requireNonNull(tokenEndpointAuthMethodsSupported, "tokenEndpointAuthMethodsSupported"));
     }
 
     /** Render the wire form: stable order, negative flags emitted, empty optional arrays omitted. */
