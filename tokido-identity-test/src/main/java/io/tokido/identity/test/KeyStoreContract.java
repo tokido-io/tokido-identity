@@ -17,7 +17,7 @@ public abstract class KeyStoreContract {
     protected abstract KeyStore createKeyStore();
 
     @Test
-    void current_signing_key_is_present() {
+    protected void current_signing_key_is_present() {
         SigningKey k = createKeyStore().currentSigningKey();
         assertThat(k).isNotNull();
         assertThat(k.kid()).isNotBlank();
@@ -26,16 +26,17 @@ public abstract class KeyStoreContract {
     }
 
     @Test
-    void verification_keys_are_nonempty_and_immutable() {
+    protected void verification_keys_are_nonempty_and_immutable() {
         var keys = createKeyStore().verificationKeys();
         assertThat(keys).isNotEmpty();
         assertThatThrownBy(() -> keys.add(null)).isInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test
-    void current_key_public_view_is_published() {
+    protected void current_key_public_view_is_published() {
         KeyStore store = createKeyStore();
         String kid = store.currentSigningKey().kid();
         assertThat(store.verificationKeys()).extracting(VerificationKey::kid).contains(kid);
+        assertThat(store.verificationKeys()).allSatisfy(v -> assertThat(v.publicKey()).isNotNull());
     }
 }
