@@ -42,6 +42,7 @@
         <module>tokido-identity-dev</module>
         <module>tokido-identity-test</module>
         <module>tokido-identity-conformance</module> <!-- test-only, never published -->
+        <module>adapters/tokido-identity-spring-boot-starter</module>
     </modules>
 
     <properties>
@@ -55,11 +56,19 @@
         <apiguardian.version>1.1.2</apiguardian.version>
         <jacoco.version>0.8.14</jacoco.version>
         <surefire.version>3.5.4</surefire.version>
+        <spring-boot.version>3.4.1</spring-boot.version>
         <compiler-plugin.version>3.15.0</compiler-plugin.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-api</artifactId><version>${tokido.version}</version></dependency>
             <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-engine</artifactId><version>${tokido.version}</version></dependency>
             <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-http</artifactId><version>${tokido.version}</version></dependency>
