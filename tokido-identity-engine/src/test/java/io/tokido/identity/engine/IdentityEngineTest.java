@@ -53,4 +53,26 @@ class IdentityEngineTest {
     void exposes_injected_clock() throws Exception {
         assertThat(engine().clock().instant()).isEqualTo(Instant.parse("2026-06-26T00:00:00Z"));
     }
+
+    @Test
+    void constructor_rejects_nulls() throws Exception {
+        KeyPairGenerator g = KeyPairGenerator.getInstance("RSA");
+        g.initialize(2048);
+        KeyPair kp = g.generateKeyPair();
+        SigningKey k = new SigningKey("kid-1", SignatureAlgorithm.RS256, kp.getPrivate(), kp.getPublic(),
+                Instant.parse("2026-01-01T00:00:00Z"), null);
+        KeyStore store = new KeyStore() {
+            @Override public SigningKey currentSigningKey() { return k; }
+            @Override public List<VerificationKey> verificationKeys() { return List.of(k.toVerificationKey()); }
+        };
+        DiscoveryConfig cfg = new DiscoveryConfig(URI.create("https://idp.example.com"));
+        Clock clock = Clock.fixed(Instant.parse("2026-06-26T00:00:00Z"), ZoneOffset.UTC);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new IdentityEngine(null, store, clock))
+                .isInstanceOf(NullPointerException.class).hasMessageContaining("config");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new IdentityEngine(cfg, null, clock))
+                .isInstanceOf(NullPointerException.class).hasMessageContaining("keyStore");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new IdentityEngine(cfg, store, null))
+                .isInstanceOf(NullPointerException.class).hasMessageContaining("clock");
+    }
 }
