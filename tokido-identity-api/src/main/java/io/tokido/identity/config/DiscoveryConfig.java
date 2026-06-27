@@ -10,6 +10,12 @@ import java.util.Objects;
  * all advertised endpoint URLs are derived. Must be https, or http for loopback
  * (localhost / 127.0.0.1) to support local development; no query or fragment.
  *
+ * <p><strong>v0.1 limitation:</strong> the Spring adapter serves the endpoints at
+ * the host root (e.g. {@code /.well-known/openid-configuration}, {@code /jwks}).
+ * If the issuer carries a path (e.g. {@code https://host/auth}), discovery will
+ * advertise endpoint URLs under that path which the v0.1 adapter does not serve.
+ * Use a host-root issuer in v0.1; path-bearing issuers are a later increment.
+ *
  * @param issuer issuer base URL; non-null
  */
 @API(status = API.Status.EXPERIMENTAL, since = "0.1.0")

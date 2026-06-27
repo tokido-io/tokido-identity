@@ -22,7 +22,7 @@ curl http://localhost:8080/jwks
 
 | Property | Required | Notes |
 |----------|----------|-------|
-| `tokido.identity.issuer` | yes | Base URL; drives advertised endpoint URLs. |
+| `tokido.identity.issuer` | yes | Base URL; drives advertised endpoint URLs. **v0.1: use a host-root issuer** — the adapter serves endpoints at root, so a path-bearing issuer (e.g. `https://host/auth`) would advertise URLs the v0.1 adapter doesn't serve. |
 | `tokido.identity.dev-keys` | no | Use the ephemeral dev key. This example instead pins a key via `ExampleKeyConfig` for a stable `kid`. |
 
 The committed `dev-*.pem` files are a **dev-only** pinned key for reproducibility.
