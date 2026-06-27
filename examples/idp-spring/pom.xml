@@ -28,7 +28,17 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
-                <executions><execution><goals><goal>repackage</goal></goals></execution></executions>
+                <executions>
+                    <execution>
+                        <goals><goal>repackage</goal></goals>
+                        <configuration>
+                            <!-- Keep the plain jar as the main artifact so other modules
+                                 (tokido-identity-conformance) can depend on it as a test library.
+                                 The executable fat-jar is attached with the "exec" classifier. -->
+                            <classifier>exec</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
