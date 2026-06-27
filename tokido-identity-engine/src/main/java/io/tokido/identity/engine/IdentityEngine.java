@@ -44,4 +44,9 @@ public final class IdentityEngine {
     public Clock clock() {
         return clock;
     }
+
+    // package-private: for cross-instance signing tests only; not public API.
+    io.tokido.identity.key.SigningKey currentForTest() {
+        return keyStore.currentSigningKey();
+    }
 }
