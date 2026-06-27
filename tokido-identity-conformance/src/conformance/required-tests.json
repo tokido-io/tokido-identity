@@ -8,12 +8,7 @@
   },
   "required_tests": [
     "oidcc-server",
-    "oidcc-discovery-issuer-not-matching-config",
-    "oidcc-codereuse",
-    "oidcc-redirect-uri-query-added",
-    "oidcc-response-type-missing",
-    "oidcc-scope-profile",
-    "oidcc-userinfo-bearer-header"
+    "oidcc-discovery-issuer-not-matching-config"
   ],
-  "comment": "Initial M0 list — small subset selected for stub-mode reachability; expanded at M2 when engine MVP lands. Per-milestone pass-rate floor: M0=0, M1=0, M2>=80%, M3>=80%, M4>=85%, M5>=95%. Total module count derived from the OIDF variant at runtime (35 in v5.1.42 for the basic plan); adjust the floor calculation accordingly when totals change."
+  "comment": "v0.1: non-interactive discovery/config tests only; informational (continue-on-error). oidcc-server checks server metadata fields; oidcc-discovery-issuer-not-matching-config checks issuer consistency — both are metadata-only, no /authorize interaction required. Interactive flow tests (codereuse, redirect-uri, scope, userinfo, etc.) are added at v0.3 when /authorize lands. Plan confirmed present in OIDF suite release-v5.1.42 (oidcc-config-certification-test-plan not chosen: prefer confirmed IDs over unverified plan names per brief). OidcConformanceIT derives module list at runtime from the OIDF suite API; this file is metadata only — it is not loaded by any Java code."
 }
