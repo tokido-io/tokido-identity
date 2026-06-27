@@ -28,8 +28,8 @@ public final class NativeSmokeMain {
 
     /**
      * Builds an {@link IdentityEngine} over an inline-generated RSA key, calls
-     * discovery / JWKS / sign, and asserts expected invariants. Throws
-     * {@link AssertionError} on any validation failure so callers (tests or
+     * discovery / JWKS / sign+verify, and asserts expected invariants. Throws
+     * {@link IllegalStateException} on any validation failure so callers (tests or
      * {@code main}) receive a typed exception rather than a process exit.
      */
     static void run() throws Exception {
@@ -53,13 +53,22 @@ public final class NativeSmokeMain {
         String jws = new NimbusTokenSigner().sign("{\"sub\":\"smoke\"}", store.currentSigningKey());
 
         if (!discovery.contains("\"issuer\":\"https://idp.example.com\"")) {
-            throw new AssertionError("discovery missing issuer: " + discovery);
+            throw new IllegalStateException("discovery missing issuer: " + discovery);
         }
         if (!jwks.contains("\"kid\":\"smoke-kid\"") || jwks.contains("\"d\":")) {
-            throw new AssertionError("jwks malformed or leaked private key: " + jwks);
+            throw new IllegalStateException("jwks malformed or leaked private key: " + jwks);
         }
         if (jws.split("\\.").length != 3) {
-            throw new AssertionError("jws not three-part compact serialization: " + jws);
+            throw new IllegalStateException("jws not three-part compact serialization: " + jws);
+        }
+
+        // Verify the JWS signature using the public key to ensure verify paths are
+        // exercised by GraalVM AOT analysis (distinct from signing paths)
+        com.nimbusds.jwt.SignedJWT parsed = com.nimbusds.jwt.SignedJWT.parse(jws);
+        boolean verified = parsed.verify(new com.nimbusds.jose.crypto.RSASSAVerifier(
+                (java.security.interfaces.RSAPublicKey) key.publicKey()));
+        if (!verified) {
+            throw new IllegalStateException("jws signature did not verify");
         }
     }
 
