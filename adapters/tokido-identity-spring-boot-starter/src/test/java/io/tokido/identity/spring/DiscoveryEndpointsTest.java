@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = {
@@ -41,5 +42,18 @@ class DiscoveryEndpointsTest {
     @Test
     void unbuilt_endpoint_is_501() throws Exception {
         mvc.perform(get("/authorize")).andExpect(status().isNotImplemented());
+    }
+
+    @Test
+    void unbuilt_endpoint_is_501_for_any_method() throws Exception {
+        // POST /token must say "not built yet" (501), not "wrong method" (405),
+        // and behave identically to non-Spring adapters routing via the table.
+        mvc.perform(post("/token")).andExpect(status().isNotImplemented());
+        mvc.perform(post("/authorize")).andExpect(status().isNotImplemented());
+    }
+
+    @Test
+    void wrong_method_on_jwks_is_405() throws Exception {
+        mvc.perform(post("/jwks")).andExpect(status().isMethodNotAllowed());
     }
 }
