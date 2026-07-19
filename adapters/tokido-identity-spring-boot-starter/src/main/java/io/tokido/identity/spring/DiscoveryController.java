@@ -5,6 +5,7 @@ import io.tokido.identity.http.HttpResponse;
 import io.tokido.identity.http.Router;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Binds the framework-neutral Router to Spring MVC. Thin shim, no logic. */
@@ -27,11 +28,13 @@ public class DiscoveryController {
         return toEntity(router.route(new HttpRequest("GET", "/jwks")));
     }
 
-    @GetMapping({"/authorize", "/token", "/userinfo"})
+    @RequestMapping({"/authorize", "/token", "/userinfo"})
     public ResponseEntity<String> placeholder(jakarta.servlet.http.HttpServletRequest req) {
+        // All methods forward to the route table (which answers 501 for unbuilt
+        // endpoints regardless of method), so Spring and non-Spring adapters agree.
         // The route table knows context-relative paths; strip the servlet context path.
         String path = req.getRequestURI().substring(req.getContextPath().length());
-        return toEntity(router.route(new HttpRequest("GET", path)));
+        return toEntity(router.route(new HttpRequest(req.getMethod(), path)));
     }
 
     private ResponseEntity<String> toEntity(HttpResponse r) {
