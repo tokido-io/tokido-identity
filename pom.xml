@@ -42,11 +42,14 @@
         <module>tokido-identity-dev</module>
         <module>tokido-identity-test</module>
         <module>tokido-identity-conformance</module> <!-- test-only, never published -->
+        <module>adapters/tokido-identity-spring-boot-starter</module>
+        <module>examples/idp-spring</module>
     </modules>
 
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.outputTimestamp>2026-06-26T00:00:00Z</project.build.outputTimestamp>
         <tokido.version>0.1.0-SNAPSHOT</tokido.version>
         <nimbus.version>10.0.1</nimbus.version>
         <junit.version>5.11.4</junit.version>
@@ -55,11 +58,19 @@
         <apiguardian.version>1.1.2</apiguardian.version>
         <jacoco.version>0.8.14</jacoco.version>
         <surefire.version>3.5.4</surefire.version>
+        <spring-boot.version>3.4.1</spring-boot.version>
         <compiler-plugin.version>3.15.0</compiler-plugin.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-api</artifactId><version>${tokido.version}</version></dependency>
             <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-engine</artifactId><version>${tokido.version}</version></dependency>
             <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-http</artifactId><version>${tokido.version}</version></dependency>
@@ -202,11 +213,11 @@
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.6.0</version>
+                        <version>0.7.0</version>
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>central</publishingServerId>
-                            <autoPublish>true</autoPublish>
+                            <autoPublish>false</autoPublish>
                         </configuration>
                     </plugin>
                 </plugins>

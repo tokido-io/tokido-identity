@@ -1,0 +1,38 @@
+name: publish-dry-run
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Generate an ephemeral GPG key (CI only)
+        run: |
+          cat >keydef <<'EOF'
+          %no-protection
+          Key-Type: RSA
+          Key-Length: 3072
+          Name-Real: Tokido CI Dry Run
+          Name-Email: ci@tokido.io
+          Expire-Date: 0
+          %commit
+          EOF
+          gpg --batch --gen-key keydef
+      - name: Build, sign, and stage (no portal upload)
+        run: mvn -B -P release verify -DskipITs
+        # verify runs maven-gpg-plugin (sign) + sources + javadoc; central-publishing
+        # plugin with autoPublish=false does not push during `verify`. No portal creds set.
+      - name: Assert signed artifacts exist
+        run: |
+          set -euo pipefail
+          shopt -s globstar
+          test -n "$(ls **/target/*.jar.asc 2>/dev/null)" || { echo "no signed jars found"; exit 1; }
+          echo "signed artifacts present"

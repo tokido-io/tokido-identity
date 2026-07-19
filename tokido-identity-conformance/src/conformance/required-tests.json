@@ -1,0 +1,14 @@
+{
+  "plan": "oidcc-basic-certification-test-plan",
+  "variant": {
+    "server_metadata": "discovery",
+    "client_registration": "static_client",
+    "response_type": "code",
+    "client_authn_type": "client_secret_basic"
+  },
+  "required_tests": [
+    "oidcc-server",
+    "oidcc-discovery-issuer-not-matching-config"
+  ],
+  "comment": "v0.1: non-interactive discovery/config tests only; informational (continue-on-error). oidcc-server checks server metadata fields; oidcc-discovery-issuer-not-matching-config checks issuer consistency — both are metadata-only, no /authorize interaction required. Interactive flow tests (codereuse, redirect-uri, scope, userinfo, etc.) are added at v0.3 when /authorize lands. Plan confirmed present in OIDF suite release-v5.1.42 (oidcc-config-certification-test-plan not chosen: prefer confirmed IDs over unverified plan names per brief). OidcConformanceIT derives module list at runtime from the OIDF suite API; this file is metadata only — it is not loaded by any Java code."
+}

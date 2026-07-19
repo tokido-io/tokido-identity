@@ -1,0 +1,24 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.tokido</groupId>
+        <artifactId>tokido-identity-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <artifactId>tokido-identity-spring-boot-starter</artifactId>
+    <name>Tokido Identity Spring Boot Starter</name>
+    <description>Spring Boot auto-configuration exposing OIDC discovery + JWKS.</description>
+    <dependencies>
+        <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-api</artifactId></dependency>
+        <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-engine</artifactId></dependency>
+        <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-http</artifactId></dependency>
+        <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-dev</artifactId></dependency>
+        <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
+        <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-autoconfigure</artifactId></dependency>
+        <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
+        <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-test</artifactId><scope>test</scope></dependency>
+    </dependencies>
+</project>

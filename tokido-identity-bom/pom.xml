@@ -18,6 +18,8 @@
             <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-engine</artifactId><version>${tokido.version}</version></dependency>
             <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-http</artifactId><version>${tokido.version}</version></dependency>
             <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-dev</artifactId><version>${tokido.version}</version></dependency>
+            <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-spring-boot-starter</artifactId><version>${tokido.version}</version></dependency>
+            <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-test</artifactId><version>${tokido.version}</version></dependency>
         </dependencies>
     </dependencyManagement>
 </project>

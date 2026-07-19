@@ -22,28 +22,17 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
           server-id: central
+          # setup-java generates ~/.m2/settings.xml with server credentials from these env var names.
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: GPG_PASSPHRASE
 
-      - name: Verify pom versions are release (not SNAPSHOT)
+      - name: Verify no SNAPSHOT versions
         run: |
           set -euo pipefail
-          # The maintainer bumps -SNAPSHOT to release locally before tagging.
-          # This step guards against accidentally tagging a SNAPSHOT.
-          # See docs/ROADMAP.md for the release runbook.
-          if grep -q 'SNAPSHOT' pom.xml \
-                tokido-identity-bom/pom.xml \
-                tokido-identity-api/pom.xml \
-                tokido-identity-engine/pom.xml \
-                tokido-identity-http/pom.xml \
-                tokido-identity-dev/pom.xml \
-                tokido-identity-test/pom.xml \
-                tokido-identity-conformance/pom.xml; then
-            echo "::error::Found SNAPSHOT version in a pom. Maintainer must bump to release before tagging."
-            grep -H 'SNAPSHOT' pom.xml */pom.xml || true
-            exit 1
+          if grep -RIl --include=pom.xml 'SNAPSHOT' . | grep -q .; then
+            echo "::error::SNAPSHOT found in a pom"; grep -RIn --include=pom.xml 'SNAPSHOT' .; exit 1
           fi
           echo "All poms at release versions."
 
@@ -58,21 +47,20 @@ jobs:
       - name: Verify source and Javadoc artifacts
         run: |
           set -euo pipefail
-          # Verify source/javadoc jars exist for all published modules.
-          # tokido-identity-conformance is NOT published (maven.deploy.skip=true).
-          # tokido-identity-bom is pom-only (no jar expected).
-          # See docs/ROADMAP.md for the release runbook.
+          # Iterate the published modules (exclude bom/conformance/examples) and
+          # confirm each produced jar + sources + javadoc.
           for m in tokido-identity-api tokido-identity-engine tokido-identity-http \
-                   tokido-identity-dev tokido-identity-test; do
-            v=$(mvn -pl "$m" -q help:evaluate -Dexpression=project.version -DforceStdout)
-            test -f "$m/target/${m}-${v}.jar"             || { echo "::error::missing jar for $m@$v"; exit 1; }
-            test -f "$m/target/${m}-${v}-sources.jar"     || { echo "::error::missing sources jar for $m@$v"; exit 1; }
-            test -f "$m/target/${m}-${v}-javadoc.jar"     || { echo "::error::missing javadoc jar for $m@$v"; exit 1; }
+                   tokido-identity-dev tokido-identity-test tokido-identity-spring-boot-starter; do
+            d=$(find . -type d -name "$m" -maxdepth 2 | head -1)
+            v=$(mvn -pl "$d" -q help:evaluate -Dexpression=project.version -DforceStdout)
+            test -f "$d/target/${m}-${v}.jar" || { echo "::error::missing jar $m@$v"; exit 1; }
+            test -f "$d/target/${m}-${v}-sources.jar" || { echo "::error::missing sources $m@$v"; exit 1; }
+            test -f "$d/target/${m}-${v}-javadoc.jar" || { echo "::error::missing javadoc $m@$v"; exit 1; }
           done
 
       - name: Publish to Maven Central
         run: mvn deploy -P release -DskipTests -DskipITs
         env:
-          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          MAVEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

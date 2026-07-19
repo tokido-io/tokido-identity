@@ -29,6 +29,25 @@ jobs:
         with:
           key: oidf-conformance-suite-${{ hashFiles('tokido-identity-conformance/src/test/resources/docker-compose.yml') }}
 
+      # v0.1: Start the example IdP (SUT) before the OIDF suite so the
+      # discovery/JWKS endpoints are live when the suite probes them.
+      # Port 8081 avoids conflict with the OIDF suite container mapped on host
+      # port 8080 (see docker-compose.yml).  The issuer is set to a loopback URL
+      # so the discovery doc's issuer field is self-consistent.
+      #
+      # TODO v0.3: wire OidcConformanceIT to use this running SUT instead of
+      # StubAdapter, then promote this job to a hard gate (remove continue-on-error).
+      - name: Start example IdP (SUT)
+        run: |
+          mvn -q -pl examples/idp-spring -am -DskipTests package
+          nohup java -jar examples/idp-spring/target/tokido-identity-example-idp-spring-*-exec.jar \
+            --tokido.identity.issuer=http://localhost:8081 \
+            --server.port=8081 \
+            > sut.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:8081/.well-known/openid-configuration && break || sleep 2; done
+          curl -sf http://localhost:8081/.well-known/openid-configuration > /dev/null \
+            || { echo "::error::example IdP (SUT) failed to start"; cat sut.log; exit 1; }
+
       # NOTE: this workflow does NOT upload JaCoCo data to Codecov.
       # Conformance is informational during 0.x (see docs/ROADMAP.md).
       # When real engine code lands, add a Codecov upload step mirroring ci.yml.
