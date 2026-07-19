@@ -10,7 +10,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -39,6 +42,30 @@ class InMemoryKeyStoreTest {
         assertThat(secondKid).isNotEqualTo(firstKid);
         assertThat(store.verificationKeys()).extracting(v -> v.kid())
                 .containsExactlyInAnyOrder(firstKid, secondKid);
+    }
+
+    @Test
+    void concurrent_reads_during_rotation_never_see_duplicate_kids() throws Exception {
+        InMemoryKeyStore store = InMemoryKeyStore.ephemeral(CLOCK);
+        AtomicBoolean done = new AtomicBoolean(false);
+        AtomicReference<List<String>> violation = new AtomicReference<>();
+        Thread reader = new Thread(() -> {
+            while (!done.get() && violation.get() == null) {
+                List<String> kids = store.verificationKeys().stream().map(VerificationKey::kid).toList();
+                if (new HashSet<>(kids).size() != kids.size()) {
+                    violation.set(kids);
+                }
+            }
+        });
+        reader.start();
+        for (int i = 0; i < 5; i++) {
+            store.rotate();
+        }
+        done.set(true);
+        reader.join();
+        assertThat(violation.get())
+                .as("verificationKeys() observed a duplicate kid mid-rotation")
+                .isNull();
     }
 
     @Test

@@ -35,9 +35,13 @@ public final class Discovery {
                 algs,
                 SCOPES_BASELINE,
                 CLAIMS_BASELINE,
-                List.of(),   // grant_types_supported — feature-derived, empty in v0.1
-                List.of(),   // code_challenge_methods_supported — arrives v0.3
-                List.of());  // token_endpoint_auth_methods_supported — arrives v0.2/v0.3
+                // Explicit values: RFC 8414 §2 gives omitted grant_types_supported the
+                // default ["authorization_code", "implicit"] and omitted
+                // token_endpoint_auth_methods_supported "client_secret_basic", so
+                // omission would advertise MORE than v0.1 intends, not less.
+                List.of("authorization_code"),
+                List.of(),   // code_challenge_methods_supported — no spec default; arrives with PKCE in v0.3
+                List.of("client_secret_basic"));
     }
 
     private static URI endpoint(URI issuer, String path) {

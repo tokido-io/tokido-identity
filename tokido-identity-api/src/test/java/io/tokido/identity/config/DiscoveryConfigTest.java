@@ -19,6 +19,7 @@ class DiscoveryConfigTest {
     void accepts_http_loopback_for_local_dev() {
         assertThat(new DiscoveryConfig(URI.create("http://localhost:8080")).issuer()).isNotNull();
         assertThat(new DiscoveryConfig(URI.create("http://127.0.0.1:8080")).issuer()).isNotNull();
+        assertThat(new DiscoveryConfig(URI.create("http://[::1]:8080")).issuer()).isNotNull();
     }
 
     @Test

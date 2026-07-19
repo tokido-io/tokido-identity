@@ -30,7 +30,7 @@ class JsonWebKeyTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"d", "p", "q", "dp", "dq", "qi", "k"})
+    @ValueSource(strings = {"d", "p", "q", "dp", "dq", "qi", "k", "oth"})
     void rejects_private_params(String param) {
         Map<String, Object> m = publicRsa();
         m.put(param, "PRIVATE");

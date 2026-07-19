@@ -16,7 +16,7 @@ import java.util.Set;
 @API(status = API.Status.EXPERIMENTAL, since = "0.1.0")
 public record JsonWebKey(Map<String, Object> members) {
 
-    private static final Set<String> PRIVATE_PARAMS = Set.of("d", "p", "q", "dp", "dq", "qi", "k");
+    private static final Set<String> PRIVATE_PARAMS = Set.of("d", "p", "q", "dp", "dq", "qi", "oth", "k");
 
     public JsonWebKey {
         Objects.requireNonNull(members, "members");

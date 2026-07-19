@@ -24,7 +24,8 @@ public record DiscoveryConfig(URI issuer) {
         Objects.requireNonNull(issuer, "issuer");
         String scheme = issuer.getScheme();
         String host = issuer.getHost();
-        boolean loopback = host != null && (host.equals("localhost") || host.equals("127.0.0.1"));
+        boolean loopback = host != null
+                && (host.equals("localhost") || host.equals("127.0.0.1") || host.equals("[::1]"));
         if (!"https".equals(scheme) && !("http".equals(scheme) && loopback)) {
             throw new IllegalArgumentException("issuer must use https (http allowed only for loopback): " + issuer);
         }

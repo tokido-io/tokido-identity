@@ -19,7 +19,6 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * DEV-ONLY in-memory {@link KeyStore}. Generates an ephemeral RS256 key per
@@ -30,12 +29,15 @@ public final class InMemoryKeyStore implements KeyStore {
 
     private static final System.Logger LOG = System.getLogger(InMemoryKeyStore.class.getName());
 
+    /** Immutable snapshot of the store; swapped atomically so readers never see a mid-rotation state. */
+    private record State(SigningKey current, List<VerificationKey> retained) {
+    }
+
     private final Clock clock;
-    private volatile SigningKey current;
-    private final List<VerificationKey> retained = new CopyOnWriteArrayList<>();
+    private volatile State state;
 
     private InMemoryKeyStore(SigningKey current, Clock clock) {
-        this.current = current;
+        this.state = new State(current, List.of());
         this.clock = clock;
     }
 
@@ -65,22 +67,25 @@ public final class InMemoryKeyStore implements KeyStore {
     }
 
     /** Rotate: retain the current key for verification and generate a new current key. */
-    public void rotate() {
-        retained.add(current.toVerificationKey());
+    public synchronized void rotate() {
         KeyPair kp = generateRsa();
-        current = signingKey(kidFor(kp.getPublic()), kp, clock);
+        State s = state;
+        List<VerificationKey> retained = new ArrayList<>(s.retained());
+        retained.add(s.current().toVerificationKey());
+        state = new State(signingKey(kidFor(kp.getPublic()), kp, clock), List.copyOf(retained));
     }
 
     @Override
     public SigningKey currentSigningKey() {
-        return current;
+        return state.current();
     }
 
     @Override
     public List<VerificationKey> verificationKeys() {
+        State s = state;
         List<VerificationKey> all = new ArrayList<>();
-        all.add(current.toVerificationKey());
-        all.addAll(retained);
+        all.add(s.current().toVerificationKey());
+        all.addAll(s.retained());
         return List.copyOf(all);
     }
 

@@ -86,14 +86,27 @@ class DiscoveryTest {
     }
 
     @Test
-    void omits_optional_capability_arrays_in_v01() throws Exception {
+    void emits_explicit_grant_capabilities_narrower_than_rfc8414_defaults() throws Exception {
+        // RFC 8414 §2: omitting grant_types_supported implies the default
+        // ["authorization_code", "implicit"]; omitting token_endpoint_auth_methods_supported
+        // implies "client_secret_basic". Emit explicit values so implicit is never implied.
         DiscoveryDocument d = Discovery.build(
                 new DiscoveryConfig(URI.create("https://idp.example.com")), singleKeyStore());
-        assertThat(d.grantTypesSupported()).isEmpty();
+        assertThat(d.grantTypesSupported()).containsExactly("authorization_code");
+        assertThat(d.tokenEndpointAuthMethodsSupported()).containsExactly("client_secret_basic");
+        assertThat(d.toOrderedMap())
+                .containsEntry("grant_types_supported", List.of("authorization_code"))
+                .containsEntry("token_endpoint_auth_methods_supported", List.of("client_secret_basic"));
+    }
+
+    @Test
+    void omits_code_challenge_methods_until_pkce_lands() throws Exception {
+        // No RFC 8414 default exists for code_challenge_methods_supported, so
+        // omission is the accurate claim until PKCE arrives in v0.3.
+        DiscoveryDocument d = Discovery.build(
+                new DiscoveryConfig(URI.create("https://idp.example.com")), singleKeyStore());
         assertThat(d.codeChallengeMethodsSupported()).isEmpty();
-        assertThat(d.tokenEndpointAuthMethodsSupported()).isEmpty();
-        assertThat(d.toOrderedMap()).doesNotContainKeys(
-                "grant_types_supported", "code_challenge_methods_supported", "token_endpoint_auth_methods_supported");
+        assertThat(d.toOrderedMap()).doesNotContainKey("code_challenge_methods_supported");
     }
 
     @Test

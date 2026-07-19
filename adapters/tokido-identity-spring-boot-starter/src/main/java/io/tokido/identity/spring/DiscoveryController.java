@@ -29,7 +29,9 @@ public class DiscoveryController {
 
     @GetMapping({"/authorize", "/token", "/userinfo"})
     public ResponseEntity<String> placeholder(jakarta.servlet.http.HttpServletRequest req) {
-        return toEntity(router.route(new HttpRequest("GET", req.getRequestURI())));
+        // The route table knows context-relative paths; strip the servlet context path.
+        String path = req.getRequestURI().substring(req.getContextPath().length());
+        return toEntity(router.route(new HttpRequest("GET", path)));
     }
 
     private ResponseEntity<String> toEntity(HttpResponse r) {
