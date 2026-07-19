@@ -20,6 +20,8 @@
     </properties>
     <dependencies>
         <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-spring-boot-starter</artifactId><version>${tokido.version}</version></dependency>
+        <!-- The starter's dev dependency is optional; the example opts in explicitly (pinned PEM dev key). -->
+        <dependency><groupId>io.tokido</groupId><artifactId>tokido-identity-dev</artifactId><version>${tokido.version}</version></dependency>
         <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
     </dependencies>
     <build>
