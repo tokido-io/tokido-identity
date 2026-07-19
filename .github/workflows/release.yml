@@ -31,8 +31,10 @@ jobs:
       - name: Verify no SNAPSHOT versions
         run: |
           set -euo pipefail
-          if grep -RIl --include=pom.xml 'SNAPSHOT' . | grep -q .; then
-            echo "::error::SNAPSHOT found in a pom"; grep -RIn --include=pom.xml 'SNAPSHOT' .; exit 1
+          # parked/ holds retired modules outside the reactor; they are never released.
+          if grep -RIl --include=pom.xml 'SNAPSHOT' . | grep -v '^\./parked/' | grep -q .; then
+            echo "::error::SNAPSHOT found in a pom"
+            grep -RIn --include=pom.xml 'SNAPSHOT' . | grep -v '^\./parked/'; exit 1
           fi
           echo "All poms at release versions."
 
@@ -61,6 +63,8 @@ jobs:
       - name: Publish to Maven Central
         run: mvn deploy -P release -DskipTests -DskipITs
         env:
-          MAVEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
+          # Prefer the CENTRAL_TOKEN_* names; fall back to the legacy OSSRH_* secrets,
+          # which hold the same Central Portal user token (used for the M0/M1 releases).
+          MAVEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME || secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD || secrets.OSSRH_TOKEN }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
