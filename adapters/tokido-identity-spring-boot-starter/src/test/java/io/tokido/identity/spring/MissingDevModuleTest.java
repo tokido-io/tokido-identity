@@ -1,6 +1,9 @@
 package io.tokido.identity.spring;
 
+import io.tokido.identity.dev.InMemoryClientStore;
 import io.tokido.identity.dev.InMemoryKeyStore;
+import io.tokido.identity.key.KeyStore;
+import io.tokido.identity.test.Fixtures;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
@@ -41,6 +44,21 @@ class MissingDevModuleTest {
                             .rootCause()
                             .isInstanceOf(IllegalStateException.class)
                             .hasMessageContaining("tokido-identity-dev");
+                });
+    }
+
+    @Test
+    void fails_with_clear_message_when_client_store_missing() {
+        // A KeyStore bean is present, but the dev ClientStore fallback is filtered out
+        // and no user ClientStore bean is defined → fail fast naming ClientStore.
+        runner.withClassLoader(new FilteredClassLoader(InMemoryClientStore.class))
+                .withBean(KeyStore.class, () -> Fixtures.singleKeyStore(Fixtures.rsaSigningKey("k")))
+                .run(ctx -> {
+                    assertThat(ctx).hasFailed();
+                    assertThat(ctx.getStartupFailure())
+                            .rootCause()
+                            .isInstanceOf(IllegalStateException.class)
+                            .hasMessageContaining("ClientStore");
                 });
     }
 }

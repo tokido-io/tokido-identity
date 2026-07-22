@@ -56,14 +56,18 @@ class DiscoveryConformanceTest {
     }
 
     @Test
-    void advertises_explicit_grant_capabilities_without_implicit() {
-        // Explicit values narrow the RFC 8414 omission defaults (which would
-        // imply the implicit grant); code_challenge_methods_supported has no
-        // default, so omission is accurate until PKCE lands in v0.3.
+    void advertises_feature_derived_grant_capabilities() {
+        // Feature-derived: the example wires the client_credentials grant with both
+        // secret-based auth methods, so discovery advertises exactly those — narrowing
+        // the RFC 8414 omission defaults (which would imply implicit) and honestly
+        // omitting authorization_code until it is implemented in v0.3.
+        // code_challenge_methods_supported has no default, so omission is accurate until PKCE (v0.3).
         Map<String, Object> d = discovery();
-        assertThat(d).containsEntry("grant_types_supported", List.of("authorization_code"));
-        assertThat(d).containsEntry("token_endpoint_auth_methods_supported", List.of("client_secret_basic"));
-        assertThat((List<String>) d.get("grant_types_supported")).doesNotContain("implicit");
+        assertThat(d).containsEntry("grant_types_supported", List.of("client_credentials"));
+        assertThat(d).containsEntry("token_endpoint_auth_methods_supported",
+                List.of("client_secret_basic", "client_secret_post"));
+        assertThat((List<String>) d.get("grant_types_supported"))
+                .doesNotContain("implicit", "authorization_code");
         assertThat(d).doesNotContainKey("code_challenge_methods_supported");
     }
 
