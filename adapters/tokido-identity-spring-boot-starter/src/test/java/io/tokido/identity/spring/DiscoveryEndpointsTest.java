@@ -45,11 +45,18 @@ class DiscoveryEndpointsTest {
     }
 
     @Test
-    void unbuilt_endpoint_is_501_for_any_method() throws Exception {
-        // POST /token must say "not built yet" (501), not "wrong method" (405),
-        // and behave identically to non-Spring adapters routing via the table.
-        mvc.perform(post("/token")).andExpect(status().isNotImplemented());
+    void unbuilt_endpoints_are_501_for_any_method() throws Exception {
+        // /authorize and /userinfo remain unbuilt: 501 for every method.
         mvc.perform(post("/authorize")).andExpect(status().isNotImplemented());
+        mvc.perform(post("/userinfo")).andExpect(status().isNotImplemented());
+    }
+
+    @Test
+    void get_token_is_405_with_allow_post() throws Exception {
+        // /token is a real POST route now; GET must say "wrong method", not "not built".
+        mvc.perform(get("/token"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(header().string("Allow", "POST"));
     }
 
     @Test

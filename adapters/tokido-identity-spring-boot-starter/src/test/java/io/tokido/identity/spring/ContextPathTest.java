@@ -24,7 +24,8 @@ class ContextPathTest {
         // but the route table knows "/authorize" — the shim must strip the context path.
         mvc.perform(get("/idp/authorize").contextPath("/idp"))
                 .andExpect(status().isNotImplemented());
+        // /token is a real route now: GET answers 405 (wrong method), not 501.
         mvc.perform(get("/idp/token").contextPath("/idp"))
-                .andExpect(status().isNotImplemented());
+                .andExpect(status().isMethodNotAllowed());
     }
 }
