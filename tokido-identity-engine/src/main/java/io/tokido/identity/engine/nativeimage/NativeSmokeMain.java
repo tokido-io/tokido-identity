@@ -1,7 +1,12 @@
 package io.tokido.identity.engine.nativeimage;
 
+import io.tokido.identity.client.ClientAuthenticationMethod;
+import io.tokido.identity.client.ClientStore;
+import io.tokido.identity.client.RegisteredClient;
 import io.tokido.identity.config.DiscoveryConfig;
 import io.tokido.identity.engine.IdentityEngine;
+import io.tokido.identity.engine.client.Pbkdf2SecretHasher;
+import io.tokido.identity.engine.grant.TokenResult;
 import io.tokido.identity.engine.signing.NimbusTokenSigner;
 import io.tokido.identity.key.KeyStore;
 import io.tokido.identity.key.SignatureAlgorithm;
@@ -9,11 +14,16 @@ import io.tokido.identity.key.SigningKey;
 import io.tokido.identity.key.VerificationKey;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Native-image smoke entry point: exercises discovery(), jwks(), and a
@@ -69,6 +79,42 @@ public final class NativeSmokeMain {
                 (java.security.interfaces.RSAPublicKey) key.publicKey()));
         if (!verified) {
             throw new IllegalStateException("jws signature did not verify");
+        }
+
+        // Exercise PBKDF2 hashing so GraalVM AOT reaches the JCA SecretKeyFactory path.
+        Pbkdf2SecretHasher hasher = new Pbkdf2SecretHasher(10_000);
+        String stored = hasher.hash("smoke-secret");
+        if (!hasher.matches("smoke-secret", stored) || hasher.matches("wrong", stored)) {
+            throw new IllegalStateException("secret hashing round-trip failed");
+        }
+
+        // Exercise the full client_credentials token path: authenticate + mint + verify.
+        RegisteredClient client = new RegisteredClient("smoke-client", stored,
+                Set.of("client_credentials"), Set.of("api"),
+                Set.of(ClientAuthenticationMethod.CLIENT_SECRET_BASIC));
+        ClientStore clientStore =
+                id -> "smoke-client".equals(id) ? Optional.of(client) : Optional.empty();
+        IdentityEngine tokenEngine = IdentityEngine.builder()
+                .discoveryConfig(new DiscoveryConfig(URI.create("https://idp.example.com")))
+                .keyStore(store).clock(Clock.systemUTC())
+                .tokenSigner(new NimbusTokenSigner()).clientStore(clientStore).secretHasher(hasher)
+                .build();
+        String basic = "Basic " + Base64.getEncoder()
+                .encodeToString("smoke-client:smoke-secret".getBytes(StandardCharsets.UTF_8));
+        TokenResult result = tokenEngine.token(basic, Map.of("grant_type", "client_credentials", "scope", "api"));
+        if (!(result instanceof TokenResult.Success success)) {
+            throw new IllegalStateException("client_credentials token was not issued: " + result);
+        }
+        com.nimbusds.jwt.SignedJWT token = com.nimbusds.jwt.SignedJWT.parse(success.response().accessToken());
+        boolean tokenVerified = token.verify(new com.nimbusds.jose.crypto.RSASSAVerifier(
+                (java.security.interfaces.RSAPublicKey) key.publicKey()));
+        var claims = token.getJWTClaimsSet();
+        if (!tokenVerified
+                || !"smoke-client".equals(claims.getStringClaim("client_id"))
+                || !"api".equals(claims.getStringClaim("scope"))
+                || claims.getJWTID() == null || claims.getJWTID().isBlank()
+                || claims.getAudience().isEmpty()) {
+            throw new IllegalStateException("client_credentials token claims invalid");
         }
     }
 

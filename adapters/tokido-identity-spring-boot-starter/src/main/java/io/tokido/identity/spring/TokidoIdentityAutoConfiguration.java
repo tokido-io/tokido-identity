@@ -1,10 +1,17 @@
 package io.tokido.identity.spring;
 
+import io.tokido.identity.claims.ClaimsEnricher;
+import io.tokido.identity.client.ClientStore;
+import io.tokido.identity.client.SecretHasher;
 import io.tokido.identity.config.DiscoveryConfig;
+import io.tokido.identity.dev.InMemoryClientStore;
 import io.tokido.identity.dev.InMemoryKeyStore;
 import io.tokido.identity.engine.IdentityEngine;
+import io.tokido.identity.engine.client.Pbkdf2SecretHasher;
+import io.tokido.identity.engine.signing.NimbusTokenSigner;
 import io.tokido.identity.http.Router;
 import io.tokido.identity.key.KeyStore;
+import io.tokido.identity.signing.TokenSigner;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -14,8 +21,9 @@ import org.springframework.context.annotation.Bean;
 
 import java.net.URI;
 import java.time.Clock;
+import java.util.Set;
 
-/** Wires discovery + JWKS from the Tokido engine. */
+/** Wires discovery + JWKS and the client_credentials token endpoint from the Tokido engine. */
 @AutoConfiguration
 @EnableConfigurationProperties(TokidoIdentityProperties.class)
 public class TokidoIdentityAutoConfiguration {
@@ -24,6 +32,20 @@ public class TokidoIdentityAutoConfiguration {
     @ConditionalOnMissingBean
     public Clock tokidoClock() {
         return Clock.systemUTC();
+    }
+
+    /** Default signer; RS256 compact-JWS via Nimbus. Always on the classpath (engine dependency). */
+    @Bean
+    @ConditionalOnMissingBean
+    public TokenSigner tokidoTokenSigner() {
+        return new NimbusTokenSigner();
+    }
+
+    /** Default secret hasher; PBKDF2-HMAC-SHA256. Always on the classpath (engine dependency). */
+    @Bean
+    @ConditionalOnMissingBean
+    public SecretHasher tokidoSecretHasher() {
+        return new Pbkdf2SecretHasher();
     }
 
     /**
@@ -53,12 +75,32 @@ public class TokidoIdentityAutoConfiguration {
         }
     }
 
-    // NOTE: a TokenSigner bean is added here in v0.2 when IdentityEngine mints tokens.
+    /**
+     * Dev client-registry fallback: an empty in-memory {@link ClientStore} so an app
+     * that has the dev module on the classpath boots without registering clients.
+     * Only activates when tokido-identity-dev is present and the consumer has not
+     * supplied their own {@code ClientStore} (e.g. the example app registers a demo
+     * client and that bean wins).
+     */
+    @ConditionalOnClass(InMemoryClientStore.class)
+    static class DevClientStoreConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        ClientStore tokidoClientStore(SecretHasher secretHasher) {
+            return new InMemoryClientStore(secretHasher);
+        }
+    }
 
     @Bean
     @ConditionalOnMissingBean
     public IdentityEngine tokidoIdentityEngine(TokidoIdentityProperties props,
-                                               ObjectProvider<KeyStore> keyStore, Clock clock) {
+                                               ObjectProvider<KeyStore> keyStore,
+                                               ObjectProvider<ClientStore> clientStore,
+                                               TokenSigner tokenSigner,
+                                               SecretHasher secretHasher,
+                                               ObjectProvider<ClaimsEnricher> claimsEnrichers,
+                                               Clock clock) {
         if (props.getIssuer() == null || props.getIssuer().isBlank()) {
             throw new IllegalStateException("tokido.identity.issuer is required");
         }
@@ -69,7 +111,26 @@ public class TokidoIdentityAutoConfiguration {
                     + "Provide a production KeyStore bean, or add the optional io.tokido:tokido-identity-dev "
                     + "dependency and set tokido.identity.dev-keys=true (dev only, never in production).");
         }
-        return new IdentityEngine(new DiscoveryConfig(URI.create(props.getIssuer())), ks, clock);
+        ClientStore cs = clientStore.getIfAvailable();
+        if (cs == null) {
+            throw new IllegalStateException(
+                    "No ClientStore bean is defined and tokido-identity-dev is not on the classpath. "
+                    + "Provide a production ClientStore bean, or add the optional io.tokido:tokido-identity-dev "
+                    + "dependency (dev only) to get an in-memory registry.");
+        }
+        IdentityEngine.Builder builder = IdentityEngine.builder()
+                .discoveryConfig(new DiscoveryConfig(URI.create(props.getIssuer())))
+                .keyStore(ks)
+                .clock(clock)
+                .tokenSigner(tokenSigner)
+                .clientStore(cs)
+                .secretHasher(secretHasher)
+                .accessTokenTtl(props.getAccessTokenTtl())
+                .claimsEnrichers(claimsEnrichers.orderedStream().toList());
+        if (props.getTokenAudience() != null && !props.getTokenAudience().isBlank()) {
+            builder.tokenAudiences(Set.of(props.getTokenAudience()));
+        }
+        return builder.build();
     }
 
     @Bean
