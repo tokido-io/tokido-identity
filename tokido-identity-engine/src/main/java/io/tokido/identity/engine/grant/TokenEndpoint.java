@@ -23,6 +23,8 @@ import java.util.Set;
  */
 public final class TokenEndpoint {
 
+    private static final System.Logger LOG = System.getLogger(TokenEndpoint.class.getName());
+
     private final ClientAuthenticator authenticator;
     private final GrantRegistry registry;
     private final TokenMinter minter;
@@ -48,6 +50,9 @@ public final class TokenEndpoint {
         } catch (OAuthException e) {
             return new TokenResult.Error(e.error(), e.getMessage(), e.basicChallenge());
         } catch (RuntimeException e) {
+            // Unexpected failure (a bug, or a misbehaving handler/enricher/store). Log for
+            // operability but return an opaque error so no internal detail reaches the client.
+            LOG.log(System.Logger.Level.WARNING, "unexpected error handling token request", e);
             return new TokenResult.Error(OAuthError.SERVER_ERROR, "internal error", false);
         }
     }

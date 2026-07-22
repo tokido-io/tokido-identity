@@ -114,6 +114,28 @@ class TokenEndpointTest {
     }
 
     @Test
+    void unexpected_handler_failure_becomes_server_error() {
+        io.tokido.identity.grant.GrantHandler boom = new io.tokido.identity.grant.GrantHandler() {
+            @Override public String grantType() { return "boom"; }
+            @Override public io.tokido.identity.grant.TokenResponse handle(
+                    io.tokido.identity.grant.GrantContext ctx) {
+                throw new IllegalStateException("kaboom");
+            }
+        };
+        IdentityEngine engine = IdentityEngine.builder()
+                .discoveryConfig(new DiscoveryConfig(URI.create("https://idp.example.com")))
+                .keyStore(keyStore).clock(Fixtures.fixedClock())
+                .tokenSigner(new NimbusTokenSigner()).clientStore(clientStore).secretHasher(hasher)
+                .grantHandlers(java.util.List.of(boom))
+                .build();
+        TokenResult result = engine.token(basic("c1", "s3cret"), Map.of("grant_type", "boom"));
+        assertThat(result).isInstanceOfSatisfying(TokenResult.Error.class, e -> {
+            assertThat(e.error()).isEqualTo(OAuthError.SERVER_ERROR);
+            assertThat(e.description()).doesNotContain("kaboom"); // no internal detail leaked
+        });
+    }
+
+    @Test
     void discovery_only_engine_rejects_token_calls() {
         IdentityEngine discoveryOnly = new IdentityEngine(
                 new DiscoveryConfig(URI.create("https://idp.example.com")), keyStore, Fixtures.fixedClock());

@@ -8,8 +8,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 /** Binds the framework-neutral Router to Spring MVC. Thin shim, no logic. */
 @RestController
@@ -43,13 +47,32 @@ public class DiscoveryController {
         if (auth != null) {
             headers.put("Authorization", auth);
         }
+        // Read parameters from the request body only. The servlet parameter map merges
+        // the query string with the body, but credentials in a URL are an RFC 6749 §2.3.1
+        // anti-pattern (they leak into logs/proxies/history), so query params are excluded.
+        Set<String> queryNames = queryParamNames(req.getQueryString());
         Map<String, String> form = new LinkedHashMap<>();
         req.getParameterMap().forEach((k, v) -> {
-            if (v != null && v.length > 0) {
+            if (!queryNames.contains(k) && v != null && v.length > 0) {
                 form.put(k, v[0]);
             }
         });
         return toEntity(router.route(new HttpRequest(req.getMethod(), "/token", headers, form)));
+    }
+
+    private static Set<String> queryParamNames(String queryString) {
+        Set<String> names = new HashSet<>();
+        if (queryString != null && !queryString.isBlank()) {
+            for (String pair : queryString.split("&")) {
+                if (pair.isEmpty()) {
+                    continue;
+                }
+                int eq = pair.indexOf('=');
+                String name = eq >= 0 ? pair.substring(0, eq) : pair;
+                names.add(URLDecoder.decode(name, StandardCharsets.UTF_8));
+            }
+        }
+        return names;
     }
 
     @RequestMapping({"/authorize", "/userinfo"})

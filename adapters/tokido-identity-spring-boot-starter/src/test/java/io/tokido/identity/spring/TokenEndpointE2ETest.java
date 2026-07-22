@@ -96,6 +96,18 @@ class TokenEndpointE2ETest {
     }
 
     @Test
+    void credentials_in_query_string_are_ignored() throws Exception {
+        // Credentials passed in the URL query must not authenticate (RFC 6749 §2.3.1):
+        // only the Authorization header and form body are honoured.
+        mvc.perform(post("/token")
+                        .queryParam("client_id", "demo-client")
+                        .queryParam("client_secret", "demo-secret")
+                        .param("grant_type", "client_credentials"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("invalid_client"));
+    }
+
+    @Test
     void bad_secret_via_basic_is_401_with_challenge() throws Exception {
         mvc.perform(post("/token")
                         .header("Authorization", basic("demo-client", "WRONG"))
