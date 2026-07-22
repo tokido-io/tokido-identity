@@ -22,4 +22,20 @@ class FixturesTest {
         assertThat(store.verificationKeys()).singleElement()
                 .satisfies(v -> assertThat(v.kid()).isEqualTo("kid-x"));
     }
+
+    @Test
+    void stub_secret_hasher_round_trips() {
+        var hasher = Fixtures.stubSecretHasher();
+        assertThat(hasher.hash("secret")).isEqualTo("stub:secret");
+        assertThat(hasher.matches("secret", "stub:secret")).isTrue();
+        assertThat(hasher.matches("wrong", "stub:secret")).isFalse();
+    }
+
+    @Test
+    void demo_client_permits_client_credentials() {
+        var client = Fixtures.demoClient(Fixtures.stubSecretHasher());
+        assertThat(client.clientId()).isEqualTo("demo-client");
+        assertThat(client.allowedGrantTypes()).contains("client_credentials");
+        assertThat(client.secretHash()).isEqualTo("stub:demo-secret");
+    }
 }
