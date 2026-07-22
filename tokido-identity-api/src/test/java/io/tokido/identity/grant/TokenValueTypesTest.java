@@ -1,5 +1,7 @@
 package io.tokido.identity.grant;
 
+import io.tokido.identity.client.ClientAuthenticationMethod;
+import io.tokido.identity.client.RegisteredClient;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -40,11 +42,17 @@ class TokenValueTypesTest {
 
     @Test
     void access_token_request_coalesces_and_validates() {
-        AccessTokenRequest a = new AccessTokenRequest("c1", "c1", null, null, null);
+        RegisteredClient client = new RegisteredClient("c1", "h",
+                Set.of("client_credentials"), Set.of("read"),
+                Set.of(ClientAuthenticationMethod.CLIENT_SECRET_BASIC));
+        AccessTokenRequest a = new AccessTokenRequest("client_credentials", client, "c1", null, null, null);
         assertThat(a.scopes()).isEmpty();
         assertThat(a.audiences()).isEmpty();
         assertThat(a.additionalClaims()).isEmpty();
-        assertThatThrownBy(() -> new AccessTokenRequest(" ", "c1", Set.of(), Set.of(), Map.of()))
+        assertThat(a.client()).isSameAs(client);
+        assertThatThrownBy(() -> new AccessTokenRequest(" ", client, "c1", Set.of(), Set.of(), Map.of()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new AccessTokenRequest("g", client, " ", Set.of(), Set.of(), Map.of()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

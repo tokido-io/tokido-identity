@@ -18,6 +18,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DiscoveryTest {
 
+    private static final DiscoveryConfig CONFIG = new DiscoveryConfig(URI.create("https://idp.example.com"));
+
     private static KeyStore singleKeyStore() throws Exception {
         KeyPairGenerator g = KeyPairGenerator.getInstance("RSA");
         g.initialize(2048);
@@ -47,10 +49,14 @@ class DiscoveryTest {
         };
     }
 
+    /** Build with no wired grants/auth methods (the common case for endpoint/alg assertions). */
+    private static DiscoveryDocument build(DiscoveryConfig config, KeyStore store) {
+        return Discovery.build(config, store, List.of(), List.of());
+    }
+
     @Test
     void derives_endpoints_from_issuer() throws Exception {
-        DiscoveryDocument d = Discovery.build(
-                new DiscoveryConfig(URI.create("https://idp.example.com")), singleKeyStore());
+        DiscoveryDocument d = build(CONFIG, singleKeyStore());
         assertThat(d.issuer()).isEqualTo(URI.create("https://idp.example.com"));
         assertThat(d.authorizationEndpoint()).isEqualTo(URI.create("https://idp.example.com/authorize"));
         assertThat(d.tokenEndpoint()).isEqualTo(URI.create("https://idp.example.com/token"));
@@ -60,24 +66,21 @@ class DiscoveryTest {
 
     @Test
     void derives_endpoints_with_path_bearing_issuer() throws Exception {
-        DiscoveryDocument d = Discovery.build(
-                new DiscoveryConfig(URI.create("https://example.com/auth")), singleKeyStore());
+        DiscoveryDocument d = build(new DiscoveryConfig(URI.create("https://example.com/auth")), singleKeyStore());
         assertThat(d.authorizationEndpoint()).isEqualTo(URI.create("https://example.com/auth/authorize"));
         assertThat(d.jwksUri()).isEqualTo(URI.create("https://example.com/auth/jwks"));
     }
 
     @Test
     void derives_endpoints_with_trailing_slash_issuer() throws Exception {
-        DiscoveryDocument d = Discovery.build(
-                new DiscoveryConfig(URI.create("https://example.com/auth/")), singleKeyStore());
+        DiscoveryDocument d = build(new DiscoveryConfig(URI.create("https://example.com/auth/")), singleKeyStore());
         assertThat(d.authorizationEndpoint()).isEqualTo(URI.create("https://example.com/auth/authorize"));
         assertThat(d.jwksUri()).isEqualTo(URI.create("https://example.com/auth/jwks"));
     }
 
     @Test
     void advertises_required_baseline_and_alg_from_keystore() throws Exception {
-        DiscoveryDocument d = Discovery.build(
-                new DiscoveryConfig(URI.create("https://idp.example.com")), singleKeyStore());
+        DiscoveryDocument d = build(CONFIG, singleKeyStore());
         assertThat(d.responseTypesSupported()).containsExactly("code");
         assertThat(d.responseModesSupported()).containsExactly("query");
         assertThat(d.subjectTypesSupported()).containsExactly("public");
@@ -86,33 +89,43 @@ class DiscoveryTest {
     }
 
     @Test
-    void emits_explicit_grant_capabilities_narrower_than_rfc8414_defaults() throws Exception {
-        // RFC 8414 §2: omitting grant_types_supported implies the default
-        // ["authorization_code", "implicit"]; omitting token_endpoint_auth_methods_supported
-        // implies "client_secret_basic". Emit explicit values so implicit is never implied.
-        DiscoveryDocument d = Discovery.build(
-                new DiscoveryConfig(URI.create("https://idp.example.com")), singleKeyStore());
-        assertThat(d.grantTypesSupported()).containsExactly("authorization_code");
-        assertThat(d.tokenEndpointAuthMethodsSupported()).containsExactly("client_secret_basic");
+    void grant_capabilities_are_feature_derived() throws Exception {
+        // v0.2: advertise exactly what is wired — after client_credentials lands that
+        // is ["client_credentials"] plus the two secret-based auth methods. authorization_code
+        // is intentionally absent until it is implemented in v0.3.
+        DiscoveryDocument d = Discovery.build(CONFIG, singleKeyStore(),
+                List.of("client_credentials"), List.of("client_secret_basic", "client_secret_post"));
+        assertThat(d.grantTypesSupported()).containsExactly("client_credentials");
+        assertThat(d.tokenEndpointAuthMethodsSupported())
+                .containsExactly("client_secret_basic", "client_secret_post");
         assertThat(d.toOrderedMap())
-                .containsEntry("grant_types_supported", List.of("authorization_code"))
-                .containsEntry("token_endpoint_auth_methods_supported", List.of("client_secret_basic"));
+                .containsEntry("grant_types_supported", List.of("client_credentials"))
+                .containsEntry("token_endpoint_auth_methods_supported",
+                        List.of("client_secret_basic", "client_secret_post"));
+    }
+
+    @Test
+    void omits_grant_capabilities_when_nothing_is_wired() throws Exception {
+        // A discovery/JWKS-only engine wires no grants or auth methods, so both keys are
+        // omitted rather than advertising the RFC 8414 defaults (which include implicit).
+        DiscoveryDocument d = build(CONFIG, singleKeyStore());
+        assertThat(d.grantTypesSupported()).isEmpty();
+        assertThat(d.tokenEndpointAuthMethodsSupported()).isEmpty();
+        assertThat(d.toOrderedMap())
+                .doesNotContainKey("grant_types_supported")
+                .doesNotContainKey("token_endpoint_auth_methods_supported");
     }
 
     @Test
     void omits_code_challenge_methods_until_pkce_lands() throws Exception {
-        // No RFC 8414 default exists for code_challenge_methods_supported, so
-        // omission is the accurate claim until PKCE arrives in v0.3.
-        DiscoveryDocument d = Discovery.build(
-                new DiscoveryConfig(URI.create("https://idp.example.com")), singleKeyStore());
+        DiscoveryDocument d = build(CONFIG, singleKeyStore());
         assertThat(d.codeChallengeMethodsSupported()).isEmpty();
         assertThat(d.toOrderedMap()).doesNotContainKey("code_challenge_methods_supported");
     }
 
     @Test
     void deduplicates_algorithm_values_from_multiple_keys() throws Exception {
-        DiscoveryDocument d = Discovery.build(
-                new DiscoveryConfig(URI.create("https://idp.example.com")), multiKeyStoreSameAlg());
+        DiscoveryDocument d = build(CONFIG, multiKeyStoreSameAlg());
         assertThat(d.idTokenSigningAlgValuesSupported()).containsExactly("RS256");
     }
 }

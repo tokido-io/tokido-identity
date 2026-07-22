@@ -19,7 +19,13 @@ public final class Discovery {
     private Discovery() {
     }
 
-    public static DiscoveryDocument build(DiscoveryConfig config, KeyStore store) {
+    /**
+     * @param grantTypesSupported             grant types actually wired (feature-derived); empty → omitted
+     * @param tokenEndpointAuthMethodsSupported token-endpoint auth methods actually wired; empty → omitted
+     */
+    public static DiscoveryDocument build(DiscoveryConfig config, KeyStore store,
+                                          List<String> grantTypesSupported,
+                                          List<String> tokenEndpointAuthMethodsSupported) {
         URI issuer = config.issuer();
         List<String> algs = store.verificationKeys().stream()
                 .map(VerificationKey::alg).map(Enum::name).distinct().toList();
@@ -35,13 +41,13 @@ public final class Discovery {
                 algs,
                 SCOPES_BASELINE,
                 CLAIMS_BASELINE,
-                // Explicit values: RFC 8414 §2 gives omitted grant_types_supported the
-                // default ["authorization_code", "implicit"] and omitted
-                // token_endpoint_auth_methods_supported "client_secret_basic", so
-                // omission would advertise MORE than v0.1 intends, not less.
-                List.of("authorization_code"),
+                // Feature-derived: advertise exactly the grants and auth methods that are
+                // wired. RFC 8414 §2 gives omitted grant_types_supported the default
+                // ["authorization_code","implicit"], so we emit explicit values (or omit
+                // the key entirely when nothing is wired) rather than over-advertising.
+                grantTypesSupported,
                 List.of(),   // code_challenge_methods_supported — no spec default; arrives with PKCE in v0.3
-                List.of("client_secret_basic"));
+                tokenEndpointAuthMethodsSupported);
     }
 
     private static URI endpoint(URI issuer, String path) {
